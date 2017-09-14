@@ -170,7 +170,7 @@ Custom property | Description | Default
           </span>
           <paper-ripple></paper-ripple>
         </paper-item>
-        <projects-menu-requests selected-request="[[selectedRequest]]" attr-for-opened="opened"></projects-menu-requests>
+        <projects-menu-requests selected-request="[[selectedRequest]]" project-id="[[item._id]]" attr-for-opened="opened"></projects-menu-requests>
       </div>
     </template>
   </template>
@@ -446,18 +446,25 @@ Custom property | Description | Default
     },
     // Toggles opened project details.
     _toggleOpen: function(e) {
-      var path = e.path;
-      if (!path) {
-        throw new Error('Path not defined for an event');
-      }
       var target;
-      while ((target = path.shift())) {
-        if (target.nodeName === 'PAPER-ITEM') {
-          break;
+      var paperNode = 'PAPER-ITEM';
+      if (e.currentTarget && e.currentTarget.nodeName === paperNode) {
+        target = e.currentTarget;
+      } else if (e.target && e.target.nodeName === paperNode) {
+        target = e.target;
+      } else {
+        var path = e.path;
+        if (!path) {
+          throw new Error('Path not defined for an event');
+        }
+        while ((target = path.shift())) {
+          if (target.nodeName === 'PAPER-ITEM') {
+            break;
+          }
         }
       }
       if (!target) {
-        throw new Error('paper-item not foung in event path');
+        throw new Error('paper-item not found in event path');
       }
       var items = target.nextElementSibling;
       if (items.hasAttribute('opened')) {
