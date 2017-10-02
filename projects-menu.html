@@ -142,6 +142,10 @@ Custom property | Description | Default
     .iron-selected .project-icon {
       color: var(--projects-menu-selected-project-icon-color, #F57C00);
     }
+
+    [hidden] {
+      display: none !important;
+    }
     </style>
     <paper-progress hidden$="[[!querying]]" indeterminate></paper-progress>
     <template is="dom-if" if="[[dataUnavailable]]">
