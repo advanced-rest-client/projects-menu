@@ -142,6 +142,10 @@ Custom property | Description | Default
     .iron-selected .project-icon {
       color: var(--projects-menu-selected-project-icon-color, #F57C00);
     }
+
+    [hidden] {
+      display: none !important;
+    }
     </style>
     <paper-progress hidden$="[[!querying]]" indeterminate></paper-progress>
     <template is="dom-if" if="[[dataUnavailable]]">
@@ -305,7 +309,7 @@ Custom property | Description | Default
       if (typeof datastore === 'string') {
         datastore = [datastore];
       }
-      if (datastore.indexOf('legacy-projects') === -1) {
+      if (datastore.indexOf('legacy-projects') === -1 && datastore[0] !== 'all') {
         return;
       }
 
