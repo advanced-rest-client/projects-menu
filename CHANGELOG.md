@@ -1,3 +1,13 @@
+<a name="0.1.5"></a>
+## [0.1.5](https://github.com/advanced-rest-client/projects-menu/compare/0.1.4...0.1.5) (2017-10-03)
+
+
+### New
+
+* Added dom-reorderer to control items order. ([df805b2f085169dd8ce1e905dd3b6e917c2640ca](https://github.com/advanced-rest-client/projects-menu/commit/df805b2f085169dd8ce1e905dd3b6e917c2640ca))
+
+
+
 <a name="0.1.4"></a>
 ## [0.1.4](https://github.com/advanced-rest-client/projects-menu/compare/0.1.2...0.1.4) (2017-10-02)
 
