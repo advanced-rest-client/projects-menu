@@ -32,6 +32,9 @@ Custom property | Description | Default
 
 A list of requests related to a project in the ARC main menu.
 
+The element requires the `arc-models/project-model` element to be present
+in the DOM to update items order.
+
 ### Example
 ```
 <projects-menu-requests project-id="some-id" selected-request="id-of-selected" attr-for-opened="opened" opened></projects-menu-requests>
@@ -49,4 +52,7 @@ Custom property | Description | Default
 `--projects-menu-requests-selected-item-background-color` | Background color of the selected list item | `#FF9800`
 `--projects-menu-requests-selected-item-color` | Color of the selected list item | `#fff`
 `--projects-menu-requests-name-label` | Mixin applied to the name label | `{}`
+`--warning-primary-color` | Main color of the warning messages | `#FF7043`
+`--warning-contrast-color` | Contrast color for the warning color | `#fff`
+`--error-toast` | Mixin applied to the error toast | `{}`
 

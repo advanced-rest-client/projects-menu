@@ -15,8 +15,13 @@ the License.
 <link rel="import" href="../http-method-label/http-method-label.html">
 <link rel="import" href="../openable-panel-behavior/openable-panel-behavior.html">
 <link rel="import" href="../legacyproject-related-requests/legacyproject-related-requests.html">
+<link rel="import" href="../dom-reorderer/dom-reorderer.html">
+<link rel="import" href="../paper-toast/paper-toast.html">
 <!--
 A list of requests related to a project in the ARC main menu.
+
+The element requires the `arc-models/project-model` element to be present
+in the DOM to update items order.
 
 ### Example
 ```
@@ -35,6 +40,9 @@ Custom property | Description | Default
 `--projects-menu-requests-selected-item-background-color` | Background color of the selected list item | `#FF9800`
 `--projects-menu-requests-selected-item-color` | Color of the selected list item | `#fff`
 `--projects-menu-requests-name-label` | Mixin applied to the name label | `{}`
+`--warning-primary-color` | Main color of the warning messages | `#FF7043`
+`--warning-contrast-color` | Contrast color for the warning color | `#fff`
+`--error-toast` | Mixin applied to the error toast | `{}`
 
 @group UI Elements
 @element projects-menu-requests
@@ -57,7 +65,13 @@ Custom property | Description | Default
       font-weight: 400;
       min-height: 36px;
       cursor: pointer;
+      z-index: 0;
       @apply --projects-menu-requests-list-item;
+    }
+
+    paper-item.dragging {
+      z-index: 1;
+      background-color: #fff;
     }
 
     paper-item.iron-selected {
@@ -106,13 +120,16 @@ Custom property | Description | Default
         <p class="empty-info">This collection is empty.</p>
       </div>
     </template>
-    <template is="dom-repeat" items="[[items]]">
-      <paper-item on-tap="_openRequest" title$="[[item.url]]" class$="[[_computeItemClass(item._id, selectedRequest)]]">
-        <http-method-label method="[[item.method]]"></http-method-label>
-        <span class="name">[[item.name]]</span>
-      </paper-item>
-    </template>
+    <dom-reorderer on-dom-order-changed="_onReorder">
+      <template is="dom-repeat" items="[[items]]">
+        <paper-item on-tap="_openRequest" title$="[[item.url]]" class$="[[_computeItemClass(item._id, selectedRequest)]]">
+          <http-method-label method="[[item.method]]"></http-method-label>
+          <span class="name">[[item.name]]</span>
+        </paper-item>
+      </template>
+    </div>
     <legacyproject-related-requests querying="{{querying}}" data="{{queryItems}}"></legacyproject-related-requests>
+    <paper-toast id="reorderError" class="error-toast" text="Unable to reorder items. Please, report an issue."></paper-toast>
   </template>
   <script>
     Polymer({
@@ -208,6 +225,50 @@ Custom property | Description | Default
           type: 'saved',
           id: id
         });
+      },
+      // Handler for the list reorder event. Updates items order in the datastore.
+      _onReorder: function() {
+        var items = this.items;
+        var update = [];
+        items.forEach((item, index) => {
+          if (item.projectOrder !== index) {
+            item.projectOrder = index;
+            update.push(item);
+          }
+        });
+
+        this._updateBulk(update)
+        .catch(() => {
+          this.$.reorderError.opened = true;
+        });
+      },
+      // Updates requests in bulk opeartion.
+      _updateBulk: function(items) {
+        var promises = items.map(item => this._updateRequest(item));
+        return Promise.all(promises);
+      },
+      /**
+       * Sends the `request-object-changed` custom event for each request on the list.
+       * @param {Object} item Request object.
+       * @return {Promise} Promise resolved when the request object is updated.
+       */
+      _updateRequest: function(item) {
+        var event = this.fire('request-object-changed', {
+          type: 'saved-requests',
+          request: item
+        }, {
+          cancelable: true,
+          composed: true
+        });
+
+        if (!event.defaultPrevented) {
+          this.fire('app-log', {
+            level: 'error',
+            messages: ['request model not found for projects menu requests']
+          });
+          return Promise.reject(new Error('Model not found'));
+        }
+        return event.detail.result;
       }
     });
   </script>
