@@ -1,3 +1,13 @@
+<a name="0.1.7"></a>
+## [0.1.7](https://github.com/advanced-rest-client/projects-menu/compare/0.1.6...0.1.7) (2017-10-13)
+
+
+### Fix
+
+* Fixed model transformation. ([e6d37485b7b532592704ae3d8223b1f941a8b98a](https://github.com/advanced-rest-client/projects-menu/commit/e6d37485b7b532592704ae3d8223b1f941a8b98a))
+
+
+
 <a name="0.1.6"></a>
 ## [0.1.6](https://github.com/advanced-rest-client/projects-menu/compare/0.1.5...0.1.6) (2017-10-03)
 

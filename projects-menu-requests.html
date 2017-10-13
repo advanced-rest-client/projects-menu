@@ -209,6 +209,9 @@ Custom property | Description | Default
       },
       // Transforms the `id` into the basic request model.
       _idToModel: function(item) {
+        if (!item.id) {
+          item.id = item._id;
+        }
         var parts = item.id.split('/');
         return {
           name: item.name,
