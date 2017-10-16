@@ -1,3 +1,13 @@
+<a name="0.1.9"></a>
+## [0.1.9](https://github.com/advanced-rest-client/projects-menu/compare/0.1.8...0.1.9) (2017-10-16)
+
+
+### Fix
+
+* Fixes https://github.com/jarrodek/ChromeRestClient/issues/1078 ([875de22c6f8294056b380af6a9b9dacf124cd114](https://github.com/advanced-rest-client/projects-menu/commit/875de22c6f8294056b380af6a9b9dacf124cd114))
+
+
+
 <a name="0.1.8"></a>
 ## [0.1.8](https://github.com/advanced-rest-client/projects-menu/compare/0.1.7...0.1.8) (2017-10-13)
 
