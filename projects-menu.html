@@ -219,7 +219,7 @@ Custom property | Description | Default
         readOnly: true,
         value: function() {
           return {
-            limit: 25,
+            limit: 100,
             descending: true,
             // jscs:disable
             include_docs: true
@@ -374,6 +374,10 @@ Custom property | Description | Default
               this.push('items', item);
             });
           }
+
+          this.async(() => {
+            this._loadPage();
+          }, 200);
         }
       })
       .catch((e) => {
