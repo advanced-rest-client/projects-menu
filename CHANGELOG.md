@@ -1,3 +1,13 @@
+<a name="0.1.11"></a>
+## [0.1.11](https://github.com/advanced-rest-client/projects-menu/compare/0.1.10...0.1.11) (2017-11-06)
+
+
+### Fix
+
+* Fixing syntax. ([b442ad5f2ffa9ee229210d87a9aeb87388192113](https://github.com/advanced-rest-client/projects-menu/commit/b442ad5f2ffa9ee229210d87a9aeb87388192113))
+
+
+
 <a name="0.1.10"></a>
 ## [0.1.10](https://github.com/advanced-rest-client/projects-menu/compare/0.1.9...0.1.10) (2017-10-16)
 
