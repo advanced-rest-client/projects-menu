@@ -30,8 +30,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </test-fixture>
 
     <script>
-    /* global fixture, assert, DataGenerator, TestHelpers, MockInteractions */
-    suite('basic with data', function() {
+    /* global fixture, assert, DataGenerator */
+    function fire(type, detail) {
+      var event = new CustomEvent('project-object-changed', {
+        bubbles: true,
+        detail: detail
+      });
+      document.body.dispatchEvent(event);
+      return event;
+    }
+    suite('Events tests', function() {
 
       suiteSetup(function() {
         return DataGenerator.generateData();
@@ -51,49 +59,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       });
 
-      test('items are set', function() {
-        assert.lengthOf(element.items, 5);
+      test('Appends non existing item to the list', function() {
+        var size = element.items.length;
+        fire('project-object-change', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        assert.notEqual(element.items.length, size);
       });
 
-      test('querying is false', function() {
-        assert.isFalse(element.querying);
+      test('Updates existing item', function() {
+        var item = Object.assign({}, element.items[0]);
+        item.name = 'test-update';
+        var size = element.items.length;
+        fire('project-object-change', {project: item});
+        assert.equal(element.items.length, size);
+        assert.equal(element.items[0].name, 'test-update');
+      });
+    });
+
+    suite('Events tests - empty list', function() {
+      var element;
+      setup(function() {
+        element = fixture('basic');
       });
 
-      test('hasItems is true', function() {
-        assert.isTrue(element.hasItems);
-      });
-
-      test('dataUnavailable is false', function() {
-        assert.isFalse(element.dataUnavailable);
-      });
-
-      test('Item tap sets opened attribute', function(done) {
-        TestHelpers.forceXIfStamp(element);
-        Polymer.RenderStatus.afterNextRender(element, function() {
-          var node = Polymer.dom(element.root).querySelectorAll('paper-item')[0];
-          MockInteractions.tap(node);
-          var requestsList = node.nextElementSibling;
-          assert.isTrue(requestsList.hasAttribute('opened'));
-          done();
-        });
-      });
-
-      test('Button tap sends navigate events', function(done) {
-        TestHelpers.forceXIfStamp(element);
-        Polymer.RenderStatus.afterNextRender(element, function() {
-          let eventData;
-          element.addEventListener('navigate', function(e) {
-            eventData = e.detail;
-          });
-          var node = Polymer.dom(element.root).querySelectorAll('paper-item')[0];
-          node = node.querySelector('paper-icon-button');
-          MockInteractions.tap(node);
-          assert.typeOf(eventData, 'object');
-          assert.equal(eventData.base, 'project');
-          assert.equal(eventData.type, 'details');
-          assert.typeOf(eventData.id, 'string');
-          done();
-        });
+      test('Appends non existing item to the list', function() {
+        fire('project-object-change', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        assert.lengthOf(element.items, 1);
       });
     });
     </script>

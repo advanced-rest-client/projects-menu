@@ -266,12 +266,14 @@ Custom property | Description | Default
       this.listen(window, 'data-imported', 'refresh');
       this.listen(window, 'datastore-destroyed', '_onDatabaseDestroy');
       this.listen(window, 'selected-project-changed', '_selectedProjectHandler');
+      this.listen(window, 'project-object-changed', '_projectChanged');
     },
 
     detached: function() {
       this.unlisten(window, 'data-imported', 'refresh');
       this.unlisten(window, 'datastore-destroyed', '_onDatabaseDestroy');
       this.unlisten(window, 'selected-project-changed', '_selectedProjectHandler');
+      this.unlisten(window, 'project-object-changed', '_projectChanged');
     },
 
     /**
@@ -367,17 +369,10 @@ Custom property | Description | Default
           this.queryOptions.startkey = response.rows[response.rows.length - 1].key;
           this.queryOptions.skip = 1;
           let res = response.rows.map(item => item.doc);
-          if (!this.items) {
-            this.set('items', res);
-          } else {
-            res.forEach(item => {
-              this.push('items', item);
-            });
-          }
-
+          this.appendItems(res);
           this.async(() => {
             this._loadPage();
-          }, 200);
+          }, 50);
         }
       })
       .catch((e) => {
@@ -389,6 +384,41 @@ Custom property | Description | Default
         console.error('Query menu items', e);
       });
     },
+    // Handler for the `project-object-changed` event.
+    _projectChanged: function(e) {
+      if (!this._isOpened && !this.items) {
+        return;
+      }
+      var project = e.detail.project;
+      var id = project._id;
+      if (!this.items) {
+        return this.appendItems([project]);
+      }
+      var index = this.items.findIndex(item => item._id === id);
+      if (index === -1) {
+        return this.appendItems([project]);
+      }
+      this.set(['items', index], project);
+    },
+    /**
+     * Appends a list of project objects to the list
+     * @param {Array} items List of projects
+     */
+    appendItems: function(items) {
+      if (!items || !items.length) {
+        return;
+      }
+      var all = this.items;
+      if (!all) {
+        items = this._prepareData(items);
+        this.set('items', items);
+      } else {
+        all = all.concat(items);
+        all = this._prepareData(all);
+        this.set('items', all);
+      }
+    },
+
     /**
      * Sorts projects list by `order` property.
      *
@@ -407,10 +437,10 @@ Custom property | Description | Default
           return -1;
         }
         if (a.name > b.name) {
-          return 1;
+          return -1;
         }
         if (a.name < b.name) {
-          return -1;
+          return 1;
         }
         return 0;
       });
