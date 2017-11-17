@@ -1,3 +1,17 @@
+<a name="0.1.13"></a>
+## [0.1.13](https://github.com/advanced-rest-client/projects-menu/compare/0.1.12...0.1.13) (2017-11-17)
+
+
+### Fix
+
+* Fixes https://github.com/jarrodek/ChromeRestClient/issues/1107 ([6b4eb605c6d6a4a969a96c4edf870b9dd75503e4](https://github.com/advanced-rest-client/projects-menu/commit/6b4eb605c6d6a4a969a96c4edf870b9dd75503e4))
+
+### Update
+
+* Updated events tests ([375dd20b15ee71c7072891ed4adc0b9654562e92](https://github.com/advanced-rest-client/projects-menu/commit/375dd20b15ee71c7072891ed4adc0b9654562e92))
+
+
+
 <a name="0.1.12"></a>
 ## [0.1.12](https://github.com/advanced-rest-client/projects-menu/compare/0.1.11...0.1.12) (2017-11-06)
 
