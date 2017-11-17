@@ -30,9 +30,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </test-fixture>
 
     <script>
-    /* global fixture, assert, DataGenerator */
+    /* global fixture, assert, DataGenerator, sinon */
     function fire(type, detail) {
-      var event = new CustomEvent('project-object-changed', {
+      var event = new CustomEvent(type, {
         bubbles: true,
         detail: detail
       });
@@ -61,7 +61,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       test('Appends non existing item to the list', function() {
         var size = element.items.length;
-        fire('project-object-change', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        fire('project-object-changed', {project: {order: 0, _id: 'test', name: 'aTest'}});
         assert.notEqual(element.items.length, size);
       });
 
@@ -69,9 +69,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var item = Object.assign({}, element.items[0]);
         item.name = 'test-update';
         var size = element.items.length;
-        fire('project-object-change', {project: item});
+        fire('project-object-changed', {project: item});
         assert.equal(element.items.length, size);
         assert.equal(element.items[0].name, 'test-update');
+      });
+
+      test('Refreshes the list on data-imported event', function() {
+        var stub = sinon.stub(element, 'refresh');
+        fire('data-imported');
+        assert.isTrue(stub.called);
       });
     });
 
@@ -82,7 +88,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
 
       test('Appends non existing item to the list', function() {
-        fire('project-object-change', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        fire('project-object-changed', {project: {order: 0, _id: 'test', name: 'aTest'}});
         assert.lengthOf(element.items, 1);
       });
     });
