@@ -1,3 +1,9 @@
+<a name="0.1.16"></a>
+## [0.1.16](https://github.com/advanced-rest-client/projects-menu/compare/0.1.15...0.1.16) (2018-01-30)
+
+
+
+
 <a name="0.1.15"></a>
 ## [0.1.15](https://github.com/advanced-rest-client/projects-menu/compare/0.1.14...0.1.15) (2018-01-30)
 
