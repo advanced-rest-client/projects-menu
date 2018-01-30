@@ -1,3 +1,14 @@
+<a name="0.1.15"></a>
+## [0.1.15](https://github.com/advanced-rest-client/projects-menu/compare/0.1.14...0.1.15) (2018-01-30)
+
+
+### Update
+
+* Adding CSS variables for empty info screen. ([ee5560811cb922983e1a3e636ee1c635ecc50ab5](https://github.com/advanced-rest-client/projects-menu/commit/ee5560811cb922983e1a3e636ee1c635ecc50ab5))
+* Adding CSS variables for empty info screen. ([f48c9777d6d9236338ef1f4ff68e52774f3b0db3](https://github.com/advanced-rest-client/projects-menu/commit/f48c9777d6d9236338ef1f4ff68e52774f3b0db3))
+
+
+
 <a name="0.1.14"></a>
 ## [0.1.14](https://github.com/advanced-rest-client/projects-menu/compare/0.1.13...0.1.14) (2017-11-17)
 
