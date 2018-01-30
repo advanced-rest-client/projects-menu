@@ -27,6 +27,8 @@ Custom property | Description | Default
 `--projects-menu-name-label` | Mixin applied to the name label | `{}`
 `--projects-menu-project-icon-color` | Color of the "project" icon | `rgba(0, 0, 0, 0.64)`
 `--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
+`--arc-menu-empty-info-color` | Color applied to the empty info section | ``
+`--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
 
 # projects-menu-requests
 
