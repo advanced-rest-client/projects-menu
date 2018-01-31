@@ -53,6 +53,7 @@ Custom property | Description | Default
 `--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
 `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
 `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
+`--projects-menu-open-icon-color` | Color of the open project icon | `{}`
 
 @group UI Elements
 @element projects-menu
@@ -125,7 +126,7 @@ Custom property | Description | Default
     }
 
     .open-project-icon {
-      color: rgba(0, 0, 0, 0.54);
+      color: var(--projects-menu-open-icon-color, rgba(0, 0, 0, 0.54));
     }
 
     projects-menu-requests {
