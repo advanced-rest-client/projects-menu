@@ -1,3 +1,13 @@
+<a name="0.1.17"></a>
+## [0.1.17](https://github.com/advanced-rest-client/projects-menu/compare/0.1.16...0.1.17) (2018-01-31)
+
+
+### Update
+
+* Adding --projects-menu-open-icon-color CSS variable. ([47bf3c7ce1a0735d2bdd87aa5bc2495894830a4b](https://github.com/advanced-rest-client/projects-menu/commit/47bf3c7ce1a0735d2bdd87aa5bc2495894830a4b))
+
+
+
 <a name="0.1.16"></a>
 ## [0.1.16](https://github.com/advanced-rest-client/projects-menu/compare/0.1.15...0.1.16) (2018-01-30)
 

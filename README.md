@@ -29,6 +29,7 @@ Custom property | Description | Default
 `--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
 `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
 `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
+`--projects-menu-open-icon-color` | Color of the open project icon | `{}`
 
 # projects-menu-requests
 
