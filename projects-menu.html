@@ -155,17 +155,7 @@ Custom property | Description | Default
     <paper-progress hidden$="[[!querying]]" indeterminate></paper-progress>
     <template is="dom-if" if="[[dataUnavailable]]">
       <div class="empty-message">
-        <h3 class="empty-title">Save request in a project and view it here</h3>
-        <svg class="empty-state-image" viewBox="0 0 180 120">
-          <defs><style>.c1{fill:#4d4d4d;}.c2{fill:#666;}.c3{fill:#faa;}.c4{fill:red;}</style></defs>
-          <g><rect class="c1" width="180" height="120"/></g>
-          <rect class="c2" x="49" width="131" height="120"/>
-          <rect class="c2" x="4" y="5" width="41" height="7"/><rect class="c2" x="4" y="107.97" width="41" height="7"/>
-          <rect class="c2" x="4" y="22" width="35.53" height="7"/><rect class="c3" x="4" y="47.33" width="41" height="7"/>
-          <rect class="c4" x="4" y="47.33" width="9" height="7"/><rect class="c3" x="13" y="62.67" width="32" height="7"/>
-          <rect class="c3" x="13" y="78" width="32" height="7"/><polygon class="c3" points="157 63 139 45 121 63 121 0 157 0 157 63"/>
-        </svg>
-        <p class="empty-info">Use <span class="code">[[_computeA11yCommand('s')]]</span> to save a request. It will appear in this place.</p>
+        <p class="empty-info">Use <span class="code">[[_computeA11yCommand('s')]]</span> to save a request in the project. It will appear in this place.</p>
       </div>
     </template>
     <template is="dom-repeat" items="[[items]]" id="list">
@@ -174,8 +164,7 @@ Custom property | Description | Default
           <iron-icon icon="arc:collections-bookmark" class="project-icon"></iron-icon>
           <span class="project-name">[[item.name]]</span>
           <span class="open-project-icon">
-            <paper-icon-button on-tap="_openProject" icon="arc:chevron-right" alt="Edit project"></paper-icon-button>
-            <paper-tooltip animation-delay="200" position="left" offset="0">Open project details</paper-tooltip>
+            <paper-icon-button on-tap="_openProject" icon="arc:chevron-right" alt="Edit project" title="Open project details"></paper-icon-button>
           </span>
           <paper-ripple></paper-ripple>
         </paper-item>
