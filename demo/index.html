@@ -59,6 +59,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <input type="number" id="requestSelectionIndex" min="0" title="Set request slected" on-input="_selectedRequestChanged"/>
           </div>
         </template>
+        <div>
+          <label for="delectionIndex">Set project selected (by index)</label>
+          <input type="number" id="delectionIndex" min="0" title="Delete selected" value="{{deleteProjectIndex::input}}"/>
+          <button on-tap="deleteSelected">Delete</button>
+        </div>
     </div>
   </template>
 
@@ -76,6 +81,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function(scope) {
     scope.displayRequestSelector = false;
     scope.selectedProjectIndex = -1;
+    scope.deleteProjectIndex = -1;
     scope.observers = ['_selectedProjectChanged(selectedProjectIndex)'];
     scope._queryingChanged = function(e) {
       if (!e.detail.value) {
@@ -156,6 +162,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
         document.body.dispatchEvent(e);
       });
+    };
+
+    scope.deleteSelected = function() {
+      var menu = document.querySelector('projects-menu');
+      var id = menu.items[scope.deleteProjectIndex]._id;
+      var e = new CustomEvent('project-object-deleted', {
+        bubbles: true,
+        detail: {
+          id: id
+        }
+      });
+      document.body.dispatchEvent(e);
     };
   })(document.getElementById('app'));
   </script>

@@ -272,6 +272,7 @@ Custom property | Description | Default
       this.listen(window, 'datastore-destroyed', '_onDatabaseDestroy');
       this.listen(window, 'selected-project-changed', '_selectedProjectHandler');
       this.listen(window, 'project-object-changed', '_projectChanged');
+      this.listen(window, 'project-object-deleted', '_projectDeleted');
     },
 
     detached: function() {
@@ -279,6 +280,7 @@ Custom property | Description | Default
       this.unlisten(window, 'datastore-destroyed', '_onDatabaseDestroy');
       this.unlisten(window, 'selected-project-changed', '_selectedProjectHandler');
       this.unlisten(window, 'project-object-changed', '_projectChanged');
+      this.unlisten(window, 'project-object-deleted', '_projectDeleted');
     },
 
     /**
@@ -404,6 +406,18 @@ Custom property | Description | Default
         return this.appendItems([project]);
       }
       this.set(['items', index], project);
+    },
+
+    _projectDeleted: function(e) {
+      if (e.cancelable || !this.items) {
+        return;
+      }
+      var id = e.detail.id;
+      var index = this.items.findIndex(item => item._id === id);
+      if (index === -1) {
+        return;
+      }
+      this.splice('items', index, 1);
     },
     /**
      * Appends a list of project objects to the list
