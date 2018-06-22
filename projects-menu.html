@@ -20,40 +20,7 @@ the License.
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../arc-icons/arc-icons.html">
 <link rel="import" href="projects-menu-requests.html">
-<!--
-A list of projects in the ARC main menu.
 
-The element uses direct implementation of the PouchDB to make a query to the
-datastore. It also listens to events fired by the `arc-model` elements to
-update state of the saved items.
-
-### Example
-```
-<projects-menu selected-project="project-id" selected-request="id-of-selected-request"></projects-menu>
-```
-
-### Styling
-`<projects-menu>` provides the following custom properties and mixins for styling:
-
-Custom property | Description | Default
-----------------|-------------|----------
-`--projects-menu` | Mixin applied to the element | `{}`
-`--projects-menu-background-color` | Background color of the menu | `#f7f7f7`
-`--projects-menu-selected-method-label-background-color` | Background color of the POST method label when the item is focused | `#fff`
-`--projects-menu-list` | Mixin applied to the list element. | `{}`
-`--projects-menu-list-item` | Mixin applied to each list item | `{}`
-`--projects-menu-selected-item-background-color` | Background color of the selected list item | `rgba(255, 152, 0, 0.24)`
-`--projects-menu-name-label` | Mixin applied to the name label | `{}`
-`--projects-menu-project-icon-color` | Color of the "project" icon | `rgba(0, 0, 0, 0.64)`
-`--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
-`--arc-menu-empty-info-color` | Color applied to the empty info section | ``
-`--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
-`--projects-menu-open-icon-color` | Color of the open project icon | `{}`
-
-@group UI Elements
-@element projects-menu
-@demo demo/index.html
--->
 <dom-module id="projects-menu">
   <template>
     <style>
@@ -156,6 +123,41 @@ Custom property | Description | Default
     </template>
   </template>
   <script>
+  /**
+   * A list of projects in the ARC main menu.
+   *
+   * The element uses direct implementation of the PouchDB to make a query to the
+   * datastore. It also listens to events fired by the `arc-model` elements to
+   * update state of the saved items.
+   *
+   * ### Example
+   *
+   * ```
+   * <projects-menu selected-project="project-id" selected-request="id-of-selected-request"></projects-menu>
+   * ```
+   * ### Styling
+   * `<saved-menu>` provides the following custom properties and mixins for styling:
+   *
+   * Custom property | Description | Default
+   * ----------------|-------------|----------
+   * `--projects-menu` | Mixin applied to the element | `{}`
+   * `--projects-menu-background-color` | Background color of the menu | `#f7f7f7`
+   * `--projects-menu-selected-method-label-background-color` | Background color of the POST method label when the item is focused | `#fff`
+   * `--projects-menu-list` | Mixin applied to the list element. | `{}`
+   * `--projects-menu-list-item` | Mixin applied to each list item | `{}`
+   * `--projects-menu-selected-item-background-color` | Background color of the selected list item | `rgba(255, 152, 0, 0.24)`
+   * `--projects-menu-name-label` | Mixin applied to the name label | `{}`
+   * `--projects-menu-project-icon-color` | Color of the "project" icon | `rgba(0, 0, 0, 0.64)`
+   * `--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
+   * `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
+   * `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
+   * `--projects-menu-open-icon-color` | Color of the open project icon | `{}`
+   *
+   * @polymer
+   * @customElement
+   * @memberof UiElements
+   * @demo demo/index.html
+   */
   class ProjectsMenu extends Polymer.Element {
     static get is() {return 'projects-menu';}
     static get properties() {
