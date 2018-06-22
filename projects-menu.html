@@ -1,6 +1,6 @@
 <!--
 @license
-Copyright 2017 The Advanced REST client authors <arc@mulesoft.com>
+Copyright 2018 The Advanced REST client authors <arc@mulesoft.com>
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License. You may obtain a copy of
 the License at
@@ -11,20 +11,15 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
 -->
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../paper-item/paper-item.html">
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../paper-item/paper-icon-item.html">
+<link rel="import" href="../paper-item/paper-item-body.html">
 <link rel="import" href="../paper-ripple/paper-ripple.html">
 <link rel="import" href="../paper-progress/paper-progress.html">
-<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="../iron-icon/iron-icon.html">
-<link rel="import" href="../iron-scroll-target-behavior/iron-scroll-target-behavior.html">
-<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
-<link rel="import" href="../openable-panel-behavior/openable-panel-behavior.html">
-<link rel="import" href="../app-pouchdb/pouchdb.html">
 <link rel="import" href="../arc-icons/arc-icons.html">
-<link rel="import" href="../paper-tooltip/paper-tooltip.html">
 <link rel="import" href="projects-menu-requests.html">
-
 <!--
 A list of projects in the ARC main menu.
 
@@ -34,7 +29,7 @@ update state of the saved items.
 
 ### Example
 ```
-<projects-menu selected-project="project-id" selected-request="id-of-selected-request" attr-for-opened="opened" opened></projects-menu>
+<projects-menu selected-project="project-id" selected-request="id-of-selected-request"></projects-menu>
 ```
 
 ### Styling
@@ -62,9 +57,9 @@ Custom property | Description | Default
 <dom-module id="projects-menu">
   <template>
     <style>
-     :host {
+    :host {
       display: block;
-      background-color: var(--projects-menu-background-color, #f7f7f7);
+      background-color: var(--projects-menu-background-color, inherit);
       position: relative;
       overflow: auto;
       @apply --layout-flex;
@@ -72,7 +67,7 @@ Custom property | Description | Default
       @apply --projects-menu;
     }
 
-    paper-item {
+    paper-icon-item {
       @apply --arc-font-menu;
       font-weight: 400;
       min-height: 40px;
@@ -81,15 +76,11 @@ Custom property | Description | Default
       @apply --projects-menu-list-item;
     }
 
-    paper-item.iron-selected {
+    paper-icon-item.iron-selected {
       background-color: var(--projects-menu-selected-item-background-color, rgba(255, 152, 0, 0.24));
     }
 
     .project-name {
-      @apply --layout-flex;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
       font-size: 14px;
       @apply --projects-menu-name-label;
     }
@@ -129,17 +120,7 @@ Custom property | Description | Default
       color: var(--projects-menu-open-icon-color, rgba(0, 0, 0, 0.54));
     }
 
-    projects-menu-requests {
-      display: none;
-    }
-
-    .project-item-wrapper[data-opened] projects-menu-requests {
-      display: block;
-    }
-
     .project-icon {
-      width: 16px;
-      height: 16px;
       color: var(--projects-menu-project-icon-color, rgba(0, 0, 0, 0.64));
       margin-right: 4px;
     }
@@ -159,148 +140,143 @@ Custom property | Description | Default
       </div>
     </template>
     <template is="dom-repeat" items="[[items]]" id="list">
-      <div class="project-item-wrapper" data-opened$="[[item.opened]]">
-        <paper-item on-tap="_toggleOpen" class$="project-item [[_computeItemClass(item._id, selectedProject)]]">
-          <iron-icon icon="arc:collections-bookmark" class="project-icon"></iron-icon>
-          <span class="project-name">[[item.name]]</span>
-          <span class="open-project-icon">
-            <paper-icon-button on-tap="_openProject" icon="arc:chevron-right" alt="Edit project" title="Open project details"></paper-icon-button>
-          </span>
+      <div class="project-item-wrapper">
+        <paper-icon-item on-click="_toggleOpen" class$="project-item [[_computeItemClass(item._id, selectedProject)]]">
+          <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
+          <paper-item-body>
+            <div class="project-name">[[item.name]]</div>
+          </paper-item-body>
+          <paper-button on-click="_openProject" title="Open project details">Details</paper-button>
           <paper-ripple></paper-ripple>
-        </paper-item>
-        <projects-menu-requests selected-request="[[selectedRequest]]" project-id="[[item._id]]" attr-for-opened="opened"></projects-menu-requests>
+        </paper-icon-item>
+        <template is="dom-if" if="[[item.opened]]">
+          <projects-menu-requests selected-request="[[selectedRequest]]" project-id="[[item._id]]"></projects-menu-requests>
+        </template>
       </div>
     </template>
   </template>
   <script>
-  Polymer({
-    is: 'projects-menu',
+  class ProjectsMenu extends Polymer.Element {
+    static get is() {return 'projects-menu';}
+    static get properties() {
+      return {
+        /**
+         * Saved items restored from the datastore.
+         */
+        items: Array,
+        // True when the element is querying the database for the data.
+        querying: {
+          type: Boolean,
+          readOnly: true,
+          notify: true
+        },
+        // Computed value, true if the `items` property has values.
+        hasItems: {
+          type: Boolean,
+          value: false,
+          computed: '_computeHasItems(items.length)',
+          notify: true
+        },
+        /**
+         * Database query options for pagination.
+         * Override this value to change the query options like limit of the results in one call.
+         *
+         * This is query options passed to the PouchDB `allDocs` function. Note that it will not
+         * set `include_docs` option. A conviniet shortcut is to set the the `includeDocs` property
+         * and the directive will be added automatically.
+         */
+        queryOptions: {
+          type: Object,
+          readOnly: true,
+          value() {
+            return {
+              limit: 100,
+              descending: true,
+              // jscs:disable
+              include_docs: true
+              // jscs:enable
+            };
+          }
+        },
+        /**
+         * Computed value. True if query ended and there's no results.
+         */
+        dataUnavailable: {
+          type: Boolean,
+          computed: '_computeDataUnavailable(hasItems, querying)'
+        },
+        // Currently selected project ID
+        selectedProject: String,
+        // Currently selected request ID
+        selectedRequest: String
+      };
+    }
 
-    behaviors: [
-      Polymer.IronScrollTargetBehavior,
-      Polymer.IronResizableBehavior,
-      ArcBehaviors.OpenablePanelBehavior
-    ],
-
-    properties: {
-      /**
-       * Saved items restored from the datastore.
-       */
-      items: Array,
-      // True when the element is querying the database for the data.
-      querying: {
-        type: Boolean,
-        readOnly: true,
-        notify: true
-      },
-      // Computed value, true if the `items` property has values.
-      hasItems: {
-        type: Boolean,
-        value: false,
-        computed: '_computeHasItems(items.length)',
-        notify: true
-      },
-      /**
-       * Database query options for pagination.
-       * Override this value to change the query options like limit of the results in one call.
-       *
-       * This is query options passed to the PouchDB `allDocs` function. Note that it will not
-       * set `include_docs` option. A conviniet shortcut is to set the the `includeDocs` property
-       * and the directive will be added automatically.
-       */
-      queryOptions: {
-        type: Object,
-        readOnly: true,
-        value: function() {
-          return {
-            limit: 100,
-            descending: true,
-            // jscs:disable
-            include_docs: true
-            // jscs:enable
-          };
-        }
-      },
-      // Element's scroll target
-      scrollTarget: {
-        type: Object,
-        value: function() {
-          return this.$.list;
-        }
-      },
-      /**
-       * Computed value. True if query ended and there's no results.
-       */
-      dataUnavailable: {
-        type: Boolean,
-        computed: '_computeDataUnavailable(hasItems, querying)'
-      },
-      // Event target for the model.
-      _eventTarget: {
-        type: Object,
-        value: function() {
-          return this;
-        }
-      },
-      // Currently selected project ID
-      selectedProject: String,
-      // Currently selected request ID
-      selectedRequest: String
-    },
     // Returns a handler to the datastore instance
     get _db() {
+      /* global PouchDB */
+      if (typeof PouchDB === 'undefined') {
+        console.error('PouchDB is not included into the application.');
+      }
       return new PouchDB('legacy-projects');
-    },
+    }
 
-    observers: [
-      '_requery(_isOpened)',
-    ],
+    constructor() {
+      super();
+      this.refresh = this.refresh.bind(this);
+      this._onDatabaseDestroy = this._onDatabaseDestroy.bind(this);
+      this._selectedProjectHandler = this._selectedProjectHandler.bind(this);
+      this._projectChanged = this._projectChanged.bind(this);
+      this._projectDeleted = this._projectDeleted.bind(this);
+    }
 
-    attached: function() {
-      this.listen(window, 'data-imported', 'refresh');
-      this.listen(window, 'datastore-destroyed', '_onDatabaseDestroy');
-      this.listen(window, 'selected-project-changed', '_selectedProjectHandler');
-      this.listen(window, 'project-object-changed', '_projectChanged');
-      this.listen(window, 'project-object-deleted', '_projectDeleted');
-    },
+    connectedCallback() {
+      super.connectedCallback();
+      window.addEventListener('data-imported', this.refresh);
+      window.addEventListener('datastore-destroyed', this._onDatabaseDestroy);
+      window.addEventListener('selected-project-changed', this._selectedProjectHandler);
+      window.addEventListener('project-object-changed', this._projectChanged);
+      window.addEventListener('project-object-deleted', this._projectDeleted);
+      if (!this.querying && !this.items) {
+        this.makeQuery();
+      }
+    }
 
-    detached: function() {
-      this.unlisten(window, 'data-imported', 'refresh');
-      this.unlisten(window, 'datastore-destroyed', '_onDatabaseDestroy');
-      this.unlisten(window, 'selected-project-changed', '_selectedProjectHandler');
-      this.unlisten(window, 'project-object-changed', '_projectChanged');
-      this.unlisten(window, 'project-object-deleted', '_projectDeleted');
-    },
+    disconnectedCallback() {
+      window.removeEventListener('data-imported', this.refresh);
+      window.removeEventListener('datastore-destroyed', this._onDatabaseDestroy);
+      window.removeEventListener('selected-project-changed', this._selectedProjectHandler);
+      window.removeEventListener('project-object-changed', this._projectChanged);
+      window.removeEventListener('project-object-deleted', this._projectDeleted);
+      super.disconnectedCallback();
+    }
 
     /**
      * Resets the state of the variables.
      */
-    reset: function() {
+    reset() {
       if (this.queryOptions) {
         delete this.queryOptions.startkey;
         delete this.queryOptions.skip;
       }
       this._setQuerying(false);
       this.set('items', []);
-    },
+    }
     /**
      * Refreshes the data from the datastore.
      * It resets the query options, clears items and makes a query to the datastore.
      */
-    refresh: function() {
+    refresh() {
       this.reset();
       this.makeQuery();
-    },
+    }
 
-    _requery: function(_isOpened) {
-      if (_isOpened && !this.items && !this.querying) {
-        this.makeQuery();
-      }
-    },
-
-    // Handler for the `datastore-destroyed` custom event
-    _onDatabaseDestroy: function(e) {
-      var datastore = e.detail.datastore;
+    /**
+     * Handler for the `datastore-destroyed` custom event
+     * @param {CustomEvent} e
+     */
+    _onDatabaseDestroy(e) {
+      let datastore = e.detail.datastore;
       if (!datastore || !datastore.length) {
         return;
       }
@@ -312,111 +288,100 @@ Custom property | Description | Default
       }
 
       this._db.close()
-      .then(() => {
-        this.refresh();
-      });
-    },
+      .then(() => this.refresh());
+    }
     /**
      * Computes class name for the HTML element representing a saved item.
      */
-    _computeItemClass: function(_id, selectedProject) {
+    _computeItemClass(_id, selectedProject) {
       if (_id && _id === selectedProject) {
         return 'iron-selected';
       }
-    },
+    }
     // Computes value for the `hasItems` property.
-    _computeHasItems: function(length) {
+    _computeHasItems(length) {
       return !!(length);
-    },
-
-    /**
-     * Called every time the element changed it's scroll position. It will call the `makeQuery`
-     * function when there's less than 120px left to scroll. (also it must be opened and must not
-     * already querying).
-     */
-    _scrollHandler: function() {
-      if (this.querying || !this._isOpened) {
-        return;
-      }
-      var elm = this.scrollTarget;
-      var delta = elm.scrollHeight - (elm.scrollTop + elm.offsetHeight);
-      if (delta < 120) {
-        this.makeQuery();
-      }
-    },
+    }
     /**
      * The function to call when new query for data is needed.
      */
-    makeQuery: function() {
-      this.debounce('menu-load-saved-page', this._loadPage, 20);
-    },
+    makeQuery() {
+      if (this.__makingQuery) {
+        return;
+      }
+      this.__makingQuery = true;
+      setTimeout(() => {
+        this.__makingQuery = false;
+        this._loadPage();
+      }, 20);
+    }
     /**
      * Performs the query and processes the result.
      */
-    _loadPage: function() {
-      var db = this._db;
+    _loadPage() {
+      const db = this._db;
       this._setQuerying(true);
 
       db.allDocs(this.queryOptions)
-      .then(response => {
+      .then((response) => {
         this._setQuerying(false);
         if (response && response.rows.length > 0) {
           // Set up pagination.
           this.queryOptions.startkey = response.rows[response.rows.length - 1].key;
           this.queryOptions.skip = 1;
-          let res = response.rows.map(item => item.doc);
+          const res = response.rows.map((item) => item.doc);
           this.appendItems(res);
-          this.async(() => {
-            this._loadPage();
-          }, 50);
+          setTimeout(() => this._loadPage(), 50);
         }
       })
       .catch((e) => {
         this._setQuerying(false);
-        this.fire('app-log', {
-          message: ['Query menu items', e],
-          level: 'error'
-        });
         console.error('Query menu items', e);
       });
-    },
+    }
     // Handler for the `project-object-changed` event.
-    _projectChanged: function(e) {
-      if (!this._isOpened && !this.items) {
+    _projectChanged(e) {
+      const project = e.detail.project;
+      if (!this.items) {
+        this.set('items', [project]);
         return;
       }
-      var project = e.detail.project;
-      var id = project._id;
+      const id = project._id;
       if (!this.items) {
         return this.appendItems([project]);
       }
-      var index = this.items.findIndex(item => item._id === id);
+      const index = this.items.findIndex((item) => item._id === id);
       if (index === -1) {
         return this.appendItems([project]);
       }
       this.set(['items', index], project);
-    },
-
-    _projectDeleted: function(e) {
+    }
+    /**
+     * Handler for `project-object-deleted` event.
+     * Removes project from the list.
+     *
+     * @param {CustomEvent} e
+     */
+    _projectDeleted(e) {
       if (e.cancelable || !this.items) {
         return;
       }
-      var id = e.detail.id;
-      var index = this.items.findIndex(item => item._id === id);
+      const id = e.detail.id;
+      const index = this.items.findIndex((item) => item._id === id);
       if (index === -1) {
         return;
       }
       this.splice('items', index, 1);
-    },
+    }
     /**
      * Appends a list of project objects to the list
      * @param {Array} items List of projects
      */
-    appendItems: function(items) {
+    appendItems(items) {
       if (!items || !items.length) {
         return;
       }
-      var all = this.items;
+      let all = this.items;
       if (!all) {
         items = this._prepareData(items);
         this.set('items', items);
@@ -425,15 +390,14 @@ Custom property | Description | Default
         all = this._prepareData(all);
         this.set('items', all);
       }
-    },
-
+    }
     /**
      * Sorts projects list by `order` property.
      *
      * @param {Array} list List of projects objects
      * @return {Array} Sorted list of projects
      */
-    _prepareData: function(list) {
+    _prepareData(list) {
       if (!list.length) {
         return [];
       }
@@ -453,12 +417,11 @@ Custom property | Description | Default
         return 0;
       });
       return list;
-    },
+    }
     // Computes value for the `dataUnavailable` property.
-    _computeDataUnavailable: function(hasItems, querying) {
+    _computeDataUnavailable(hasItems, querying) {
       return !hasItems && !querying;
-    },
-
+    }
     /**
      * Computes command label depending on a OS.
      * For Mac it will be cmd + `key` and for the rest of the World it
@@ -467,9 +430,9 @@ Custom property | Description | Default
      * @param {String} key The key combination as a sufix after the command key
      * @return {String} Full command to display in command label.
      */
-    _computeA11yCommand: function(key) {
-      var isMac = navigator.platform.indexOf('Mac') !== -1;
-      var cmd = '';
+    _computeA11yCommand(key) {
+      const isMac = navigator.platform.indexOf('Mac') !== -1;
+      let cmd = '';
       if (isMac) {
         cmd += 'meta+';
       } else {
@@ -477,59 +440,40 @@ Custom property | Description | Default
       }
       cmd += key;
       return cmd;
-    },
+    }
     // Handler for the `tap` event on the item.
-    _openProject: function(e) {
+    _openProject(e) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      var id = e.model.get('item._id');
-      this.fire('navigate', {
-        base: 'project',
-        type: 'details',
-        id: id
-      });
-    },
-    // Toggles opened project details.
-    _toggleOpen: function(e) {
-      var target;
-      var paperNode = 'PAPER-ITEM';
-      if (e.currentTarget && e.currentTarget.nodeName === paperNode) {
-        target = e.currentTarget;
-      } else if (e.target && e.target.nodeName === paperNode) {
-        target = e.target;
-      } else {
-        var path = e.path;
-        if (!path) {
-          throw new Error('Path not defined for an event');
+      const id = e.model.get('item._id');
+      this.dispatchEvent(new CustomEvent('navigate', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          base: 'project',
+          type: 'details',
+          id: id
         }
-        while ((target = path.shift())) {
-          if (target.nodeName === 'PAPER-ITEM') {
-            break;
-          }
-        }
-      }
-      if (!target) {
-        throw new Error('paper-item not found in event path');
-      }
-      var items = target.nextElementSibling;
-      if (items.hasAttribute('opened')) {
-        e.model.set('item.opened', false);
-        items.removeAttribute('opened');
-      } else {
-        e.model.set('item.opened', true);
-        items.setAttribute('opened', true);
-      }
-    },
+      }));
+    }
+    /**
+     * Toggles opened project details.
+     * @param {ClickEvent} e
+     */
+    _toggleOpen(e) {
+      e.model.set('item.opened', !e.model.get('item.opened'));
+    }
     // Handler for the `selected-project-changed` event
-    _selectedProjectHandler: function(e) {
-      var projectId = e.detail.value;
+    _selectedProjectHandler(e) {
+      const projectId = e.detail.value;
       if (projectId && projectId !== this.selectedProject) {
         this.set('selectedProject', projectId);
       } else {
         this.set('selectedProject', '');
       }
     }
-  });
+  }
+  window.customElements.define(ProjectsMenu.is, ProjectsMenu);
   </script>
 </dom-module>

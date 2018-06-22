@@ -1,25 +1,14 @@
 <!doctype html>
-<!--
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
 <html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-
-    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
     <script src="../../web-component-tester/browser.js"></script>
-    <script src="../../iron-test-helpers/test-helpers.js"></script>
-    <script src="../../iron-test-helpers/mock-interactions.js"></script>
     <script src="data-generator.js"></script>
     <script src="../../chance/dist/chance.min.js"></script>
     <link rel="import" href="../projects-menu.html">
+    <link rel="import" href="../../app-pouchdb/pouchdb.html">
   </head>
   <body>
 
@@ -30,7 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </test-fixture>
 
     <script>
-    /* global fixture, assert, DataGenerator, TestHelpers, MockInteractions */
+    /* global DataGenerator */
     suite('basic with data', function() {
 
       suiteSetup(function() {
@@ -68,31 +57,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
 
       test('Item tap sets opened attribute', function(done) {
-        TestHelpers.forceXIfStamp(element);
-        Polymer.RenderStatus.afterNextRender(element, function() {
-          var node = Polymer.dom(element.root).querySelectorAll('paper-item')[0];
-          MockInteractions.tap(node);
-          var requestsList = node.nextElementSibling;
-          assert.isTrue(requestsList.hasAttribute('opened'));
-          done();
+        flush(() => {
+          const node = element.shadowRoot.querySelectorAll('paper-icon-item')[0];
+          node.click();
+          flush(() => {
+            const requestsList = node.nextElementSibling;
+            assert.equal(requestsList.nodeName, 'PROJECTS-MENU-REQUESTS');
+            done();
+          });
         });
       });
 
       test('Button tap sends navigate events', function(done) {
-        TestHelpers.forceXIfStamp(element);
-        Polymer.RenderStatus.afterNextRender(element, function() {
-          let eventData;
+        flush(() => {
           element.addEventListener('navigate', function(e) {
-            eventData = e.detail;
+            let eventData = e.detail;
+            assert.typeOf(eventData, 'object');
+            assert.equal(eventData.base, 'project');
+            assert.equal(eventData.type, 'details');
+            assert.typeOf(eventData.id, 'string');
+            done();
           });
-          var node = Polymer.dom(element.root).querySelectorAll('paper-item')[0];
-          node = node.querySelector('paper-icon-button');
-          MockInteractions.tap(node);
-          assert.typeOf(eventData, 'object');
-          assert.equal(eventData.base, 'project');
-          assert.equal(eventData.type, 'details');
-          assert.typeOf(eventData.id, 'string');
-          done();
+          const node = element.shadowRoot.querySelectorAll('paper-icon-item')[0];
+          const button = node.querySelector('paper-button');
+          button.click();
         });
       });
     });
