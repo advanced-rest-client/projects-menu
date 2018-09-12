@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <link rel="import" href="../projects-menu.html">
+    <link rel="import" href="../../app-pouchdb/pouchdb.html">
+    <link rel="import" href="../../arc-models/request-model.html">
+    <link rel="import" href="../../arc-models/project-model.html">
+    <link rel="import" href="../../arc-data-generator/arc-data-generator.html">
+    <script src="../../chance/dist/chance.min.js"></script>
+  </head>
+  <body>
+    <request-model></request-model>
+    <project-model></project-model>
+
+    <test-fixture id="basic">
+      <template>
+        <projects-menu></projects-menu>
+      </template>
+    </test-fixture>
+
+    <script>
+    function noop() {}
+    suite('Basics', function() {
+      let element;
+      setup(function() {
+        element = fixture('basic');
+        element.makeQuery = noop;
+      });
+
+      test('querying is undefined', function() {
+        assert.isUndefined(element.querying);
+      });
+
+      test('queryOptions is set', function() {
+        assert.ok(element.queryOptions);
+      });
+
+      test('dataUnavailable is computed', function() {
+        assert.isTrue(element.dataUnavailable);
+      });
+    });
+    /* global DataGenerator */
+    suite('Querying with empty data store', function() {
+      suiteSetup(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      test('Query for data after attached to DOM', (done) => {
+        const element = fixture('basic');
+        let called = false;
+        element.addEventListener('querying-changed', function f(e) {
+          if (e.detail.value) {
+            called = true;
+          } else {
+            element.removeEventListener('querying-changed', f);
+            assert.isTrue(called);
+            done();
+          }
+        });
+      });
+
+      test('Computes dataUnavailable', (done) => {
+        const element = fixture('basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (!e.detail.value) {
+            element.removeEventListener('querying-changed', f);
+            assert.isTrue(element.dataUnavailable);
+            done();
+          }
+        });
+      });
+
+      test('Computes hasItems', (done) => {
+        const element = fixture('basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (!e.detail.value) {
+            element.removeEventListener('querying-changed', f);
+            assert.isFalse(element.hasItems);
+            done();
+          }
+        });
+      });
+
+      test('Empty message is rendered', (done) => {
+        const element = fixture('basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (!e.detail.value) {
+            element.removeEventListener('querying-changed', f);
+            flush(() => {
+              const node = element.shadowRoot.querySelector('.empty-message');
+              const result = getComputedStyle(node).display;
+              assert.notEqual(result, 'none');
+              done();
+            });
+          }
+        });
+      });
+    });
+
+    suite('Querying with data', function() {
+      suiteSetup(() => {
+        return DataGenerator.insertSavedRequestData({
+          requestsSize: 100,
+          projectsSize: 15
+        });
+      });
+      suiteTeardown(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      let element;
+      setup(function(done) {
+        element = fixture('basic');
+        element.addEventListener('has-items-changed', function f(e) {
+          if (e.detail.value) {
+            element.removeEventListener('has-items-changed', f);
+            done();
+          }
+        });
+      });
+
+      test('Has items', () => {
+        assert.isTrue(element.hasItems);
+        assert.typeOf(element.items, 'array');
+        assert.lengthOf(element.items, 15);
+      });
+
+      test('Empty message is hidden', (done) => {
+        const element = fixture('basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (!e.detail.value) {
+            element.removeEventListener('querying-changed', f);
+            flush(() => {
+              const node = element.shadowRoot.querySelector('.empty-message');
+              const result = getComputedStyle(node).display;
+              assert.equal(result, 'none');
+              done();
+            });
+          }
+        });
+      });
+
+      test('Pagination data is set', () => {
+        const qo = element.queryOptions;
+        assert.typeOf(qo.startkey, 'string');
+        assert.equal(qo.skip, 1);
+      });
+
+      test('Item tap sets opened attribute', function(done) {
+        flush(() => {
+          const node = element.shadowRoot.querySelectorAll('paper-icon-item')[0];
+          node.click();
+          flush(() => {
+            const requestsList = node.nextElementSibling;
+            assert.equal(requestsList.nodeName, 'PROJECTS-MENU-REQUESTS');
+            done();
+          });
+        });
+      });
+
+      test('Button tap sends navigate events', function(done) {
+        flush(() => {
+          element.addEventListener('navigate', function(e) {
+            let eventData = e.detail;
+            assert.typeOf(eventData, 'object');
+            assert.equal(eventData.base, 'project');
+            assert.equal(eventData.type, 'details');
+            assert.typeOf(eventData.id, 'string');
+            done();
+          });
+          const node = element.shadowRoot.querySelectorAll('paper-icon-item')[0];
+          const button = node.querySelector('paper-button');
+          button.click();
+        });
+      });
+    });
+
+    suite('Events handling', function() {
+      suiteSetup(() => {
+        return DataGenerator.insertSavedRequestData({
+          requestsSize: 100,
+          projectsSize: 15
+        });
+      });
+      suiteTeardown(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      let element;
+      setup(function(done) {
+        element = fixture('basic');
+        element.addEventListener('has-items-changed', function f(e) {
+          if (e.detail.value) {
+            element.removeEventListener('has-items-changed', f);
+            done();
+          }
+        });
+      });
+
+      function fire(type, detail) {
+        const e = new CustomEvent(type, {
+          bubbles: true,
+          detail: detail
+        });
+        document.body.dispatchEvent(e);
+        return e;
+      }
+
+      test('Appends non existing item to the list', function() {
+        const size = element.items.length;
+        fire('project-object-changed', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        assert.notEqual(element.items.length, size);
+      });
+
+      test('Updates existing item', function() {
+        const item = Object.assign({}, element.items[0]);
+        item.name = 'test-update';
+        const size = element.items.length;
+        fire('project-object-changed', {project: item});
+        assert.equal(element.items.length, size);
+        assert.equal(element.items[0].name, 'test-update');
+      });
+
+      test('Refreshes the list on data-imported event', function() {
+        const stub = sinon.stub(element, 'makeQuery');
+        fire('data-imported');
+        assert.isTrue(stub.called);
+      });
+
+      test('Deletes item from an event', function() {
+        assert.lengthOf(element.items, 15);
+        const id = element.items[0]._id;
+        fire('project-object-deleted', {
+          id: id
+        });
+        assert.lengthOf(element.items, 14);
+      });
+
+      test('Appends item undefined list', function() {
+        element.items = undefined;
+        fire('project-object-changed', {project: {order: 0, _id: 'test', name: 'aTest'}});
+        assert.lengthOf(element.items, 1);
+      });
+    });
+    </script>
+
+  </body>
+</html>
