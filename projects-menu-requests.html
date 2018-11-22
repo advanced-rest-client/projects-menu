@@ -29,6 +29,7 @@ the License.
       background-color: var(--projects-menu-requests-background-color, inherit);
       position: relative;
 
+      @apply --arc-font-body1;
       @apply --layout-flex;
       @apply --layout-vertical;
       @apply --projects-menu-requests;
@@ -36,7 +37,7 @@ the License.
 
     paper-icon-item.dragging {
       z-index: 1;
-      background-color: #fff;
+      background-color: var(--projects-menu-requests-item-dragging-background-color, #fff);
     }
 
     .name {
@@ -58,7 +59,6 @@ the License.
     }
 
     .empty-info {
-      @apply --arc-font-body1;
       font-style: italic;
       margin: 1em 16px;
     }
