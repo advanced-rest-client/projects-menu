@@ -123,7 +123,9 @@ the License.
    * @appliesMixin ArcComponents.RequestsListMixin
    */
   class ProjectsMenuRequests extends ArcComponents.RequestsListMixin(Polymer.Element) {
-    static get is() {return 'projects-menu-requests';}
+    static get is() {
+      return 'projects-menu-requests';
+    }
     static get properties() {
       return {
         /**
@@ -131,7 +133,7 @@ the License.
          */
         projectId: String,
         // True if the element currently is querying the datastore for the data
-        querying: Boolean,
+        querying: {type: Boolean, notify: true},
         /**
          * Computed value. True if query ended and there's no results.
          */
@@ -183,7 +185,7 @@ the License.
         this.set('requests', requests);
       })
       .catch((cause) => {
-        this.querying = true;
+        this.querying = false;
         console.error(cause);
       });
     }

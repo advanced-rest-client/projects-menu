@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <link rel="import" href="../../arc-data-generator/arc-data-generator.html">
+    <link rel="import" href="../../arc-models/request-model.html">
+    <link rel="import" href="../../arc-models/project-model.html">
+    <link rel="import" href="../../iron-test-helpers/mock-interactions.html">
+    <link rel="import" href="../projects-menu-requests.html">
+  </head>
+  <body>
+    <request-model></request-model>
+    <project-model></project-model>
+
+    <test-fixture id="Basic">
+      <template>
+        <projects-menu-requests></projects-menu-requests>
+      </template>
+    </test-fixture>
+    <script>
+    /* global DataGenerator, MockInteractions */
+    suite('type property', () => {
+      test('Sets type property', () => {
+        const element = fixture('Basic');
+        assert.equal(element.type, 'project');
+      });
+    });
+
+    suite('_isAttached property', () => {
+      test('Sets _isAttached property', () => {
+        const element = fixture('Basic');
+        assert.isTrue(element._isAttached);
+      });
+    });
+
+    suite('_computeDataUnavailable()', () => {
+      let element;
+      setup(() => {
+        element = fixture('Basic');
+      });
+
+      test('Returns true when has no request and not querying', () => {
+        assert.isTrue(element._computeDataUnavailable(false, false));
+      });
+
+      test('Returns false otherwise', () => {
+        assert.isFalse(element._computeDataUnavailable(false, true));
+        assert.isFalse(element._computeDataUnavailable(false, true));
+        assert.isFalse(element._computeDataUnavailable(true, true));
+      });
+    });
+
+    suite('_queryData()', () => {
+      let project;
+      suiteSetup(() => {
+        return DataGenerator.insertSavedRequestData()
+        .then((data) => {
+          project = data.projects.find((item) => item.requests && item.requests.length);
+          if (!project) {
+            throw new Error('TEst initialization failed. Projects were not generated.');
+          }
+        });
+      });
+
+      suiteTeardown(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      let element;
+      setup((done) => {
+        element = fixture('Basic');
+        flush(() => done());
+      });
+
+      test('Does nothing when _isAttached is not set', () => {
+        const spy = sinon.spy(element, 'readProjectRequests');
+        element._queryData(project._id);
+        assert.isFalse(spy.called);
+      });
+
+      test('Sets "querying" flag', (done) => {
+        element._queryData(project._id, true);
+        assert.isTrue(element.querying);
+        setTimeout(() => done());
+      });
+
+      test('Calls readProjectRequests()', (done) => {
+        const spy = sinon.spy(element, 'readProjectRequests');
+        element._queryData(project._id, true);
+        assert.isTrue(spy.called);
+        setTimeout(() => done());
+      });
+    });
+
+    suite('_openRequest()', () => {
+      let project;
+      suiteSetup(() => {
+        return DataGenerator.insertSavedRequestData()
+        .then((data) => {
+          project = data.projects.find((item) => item.requests && item.requests.length);
+          if (!project) {
+            throw new Error('TEst initialization failed. Projects were not generated.');
+          }
+        });
+      });
+
+      suiteTeardown(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      let element;
+      setup((done) => {
+        element = fixture('Basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (e.detail.value) {
+            return;
+          }
+          element.removeEventListener('querying-changed', f);
+          flush(() => done());
+        });
+        element.projectId = project._id;
+      });
+
+      test('Calls _openRequest() when menu item click', () => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const spy = sinon.spy(element, '_openRequest');
+        MockInteractions.tap(node);
+        assert.isTrue(spy.called);
+      });
+
+      test('Dispatches navigate event', () => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const spy = sinon.spy();
+        element.addEventListener('navigate', spy);
+        MockInteractions.tap(node);
+        assert.isTrue(spy.called);
+      });
+
+      test('Navigate event has base', () => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const spy = sinon.spy();
+        element.addEventListener('navigate', spy);
+        MockInteractions.tap(node);
+        assert.equal(spy.args[0][0].detail.base, 'request');
+      });
+
+      test('Navigate event has type', () => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const spy = sinon.spy();
+        element.addEventListener('navigate', spy);
+        MockInteractions.tap(node);
+        assert.equal(spy.args[0][0].detail.type, 'saved');
+      });
+
+      test('Navigate event has id', () => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const spy = sinon.spy();
+        element.addEventListener('navigate', spy);
+        MockInteractions.tap(node);
+        assert.typeOf(spy.args[0][0].detail.id, 'string');
+      });
+    });
+
+    suite('_onReorder()', () => {
+      let project;
+      suiteSetup(() => {
+        return DataGenerator.insertSavedRequestData()
+        .then((data) => {
+          project = data.projects.find((item) => item.requests && item.requests.length);
+          if (!project) {
+            throw new Error('TEst initialization failed. Projects were not generated.');
+          }
+        });
+      });
+
+      suiteTeardown(() => {
+        return DataGenerator.destroySavedRequestData();
+      });
+
+      let element;
+      setup((done) => {
+        element = fixture('Basic');
+        element.addEventListener('querying-changed', function f(e) {
+          if (e.detail.value) {
+            return;
+          }
+          element.removeEventListener('querying-changed', f);
+          flush(() => done());
+        });
+        element.projectId = project._id;
+      });
+
+      test('Calls _persistRequestsOrder()', () => {
+        const spy = sinon.spy(element, '_persistRequestsOrder');
+        element._onReorder();
+        assert.isTrue(spy.called);
+      });
+    });
+    </script>
+
+  </body>
+</html>

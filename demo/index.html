@@ -72,14 +72,6 @@
 
       <section class="centered card">
         <div>
-          <label for="selectionIndex">Set project selected (by index)</label>
-          <input type="number" id="selectionIndex" min="0" title="Set project selected" on-input="_projectIndexChanged"/>
-        </div>
-        <div>
-          <label for="requestSelectionIndex">Set request selected for current project (by index)</label>
-          <input type="number" id="requestSelectionIndex" min="0" title="Set request slected" on-input="_selectedRequestChanged" />
-        </div>
-        <div>
           <label for="delectionIndex">Set project to be deleted (by index)</label>
           <input type="number" id="delectionIndex" min="0" title="Delete selected" value="{{deleteProjectIndex::input}}" />
           <button on-click="deleteSelected">Delete</button>
@@ -88,6 +80,7 @@
       <paper-toast id="genToast" text="The request data has been generated"></paper-toast>
       <paper-toast id="delToast" text="The request data has been removed"></paper-toast>
       <paper-toast id="navToast" text="" duration="7000"></paper-toast>
+      <paper-toast id="wksToast" text="" duration="7000"></paper-toast>
     </template>
   </dom-bind>
   <script>
@@ -98,25 +91,25 @@
     toast.text = 'Navigation ocurred to: ' + d.base + ', and id: ' + d.id;
     toast.opened = true;
   });
+
+  window.addEventListener('workspace-open-project-requests', function(e) {
+    const toast = document.getElementById('wksToast');
+    const {replace, project} = e.detail;
+    let msg;
+    if (replace) {
+      msg = 'Replacing';
+    } else {
+      msg = 'Adding';
+    }
+    msg += ' "' + project.name + '" project requests';
+    toast.text = msg;
+    toast.opened = true;
+  });
   (function(scope) {
     scope.deleteProjectIndex = -1;
 
-    scope._selectedRequestChanged = function(e) {
-      const index = Number(e.target.value);
-      const menu = document.querySelector('projects-menu');
-      const nodes = menu.shadowRoot.querySelectorAll('projects-menu-requests');
-      if (!nodes.length) {
-        return;
-      }
-      const projectIndex = document.getElementById('selectionIndex').value;
-      const projectId = menu.items[projectIndex]._id;
-      const requestsNode = Array.from(nodes).find((item) => item.projectId === projectId);
-      const requests = requestsNode.requests;
-      menu.selectedRequest = requests[index]._id;
-    };
-
     scope.refresh = function() {
-      document.querySelector('projects-menu').refresh();
+      document.querySelector('projects-menu').refreshProjects();
     };
 
     scope.generate = function() {
@@ -149,7 +142,7 @@
 
     scope.deleteSelected = function() {
       const menu = document.querySelector('projects-menu');
-      const id = menu.items[scope.deleteProjectIndex]._id;
+      const id = menu.projects[scope.deleteProjectIndex]._id;
       const e = new CustomEvent('project-object-deleted', {
         bubbles: true,
         detail: {
@@ -157,21 +150,6 @@
         }
       });
       document.body.dispatchEvent(e);
-    };
-
-    scope._projectIndexChanged = function(e) {
-      const menu = document.querySelector('projects-menu');
-      const index = Number(e.target.value);
-      if (index < 0) {
-        menu.selectedProject = undefined;
-        return;
-      }
-      // sets the ID of selected project
-      if (!index && index !== 0) {
-        menu.selectedProject = undefined;
-      } else {
-        menu.selectedProject = menu.items[index]._id;
-      }
     };
   })(document.getElementById('app'));
   </script>

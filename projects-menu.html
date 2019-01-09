@@ -20,8 +20,12 @@ the License.
 <link rel="import" href="../paper-button/paper-button.html">
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../arc-icons/arc-icons.html">
-<link rel="import" href="projects-menu-requests.html">
+<link rel="import" href="../projects-list-consumer-mixin/projects-list-consumer-mixin.html">
+<link rel="import" href="../paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../paper-listbox/paper-listbox.html">
 
+<link rel="import" href="projects-menu-requests.html">
 <dom-module id="projects-menu">
   <template>
     <style>
@@ -43,10 +47,6 @@ the License.
       @apply --projects-menu-list-item;
     }
 
-    paper-icon-item.iron-selected {
-      background-color: var(--projects-menu-selected-item-background-color, rgba(255, 152, 0, 0.24));
-    }
-
     .project-name {
       font-size: 14px;
       @apply --projects-menu-name-label;
@@ -65,12 +65,6 @@ the License.
       color: var(--arc-menu-empty-info-color);
     }
 
-    .empty-title {
-      @apply --paper-font-title;
-      white-space: normal;
-      color: var(--arc-menu-empty-info-title-color);
-    }
-
     .empty-message {
       @apply --layout-flex;
       @apply --layout-vertical;
@@ -78,26 +72,17 @@ the License.
       text-align: center;
     }
 
-    .empty-state-image {
-      width: 180px;
-      height: 120px;
-    }
-
-    .open-project-icon {
-      color: var(--projects-menu-open-icon-color, rgba(0, 0, 0, 0.54));
-    }
-
     .project-icon {
       color: var(--projects-menu-project-icon-color, rgba(0, 0, 0, 0.64));
       margin-right: 4px;
     }
 
-    .iron-selected .project-icon {
-      color: var(--projects-menu-selected-project-icon-color, #F57C00);
-    }
-
     [hidden] {
       display: none !important;
+    }
+
+    .menu-wrapper {
+      padding: 0;
     }
 
     :host([list-type="comfortable"]) paper-icon-item {
@@ -109,8 +94,16 @@ the License.
       width: 20px;
     }
 
-    :host([list-type="comfortable"]) .action-button {
-      height: 40px;
+    :host([list-type="comfortable"]) .menu-icon {
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+    }
+
+    :host([list-type="comfortable"]) .menu-wrapper {
+      width: 32px;
+      height: 32px;
+      padding: 0;
     }
 
     :host([list-type="compact"]) paper-icon-item {
@@ -122,31 +115,54 @@ the License.
       width: 16px;
     }
 
-    :host([list-type="compact"]) .action-button {
-      height: 36px;
+    :host([list-type="compact"]) .menu-icon {
+      width: 28px;
+      height: 28px;
+      padding: 4px;
+    }
+
+    :host([list-type="comfortable"]) .menu-wrapper {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+    }
+
+    .menu-item {
+      @apply --paper-item;
+      color: var(--context-menu-item-color);
+      background-color: var(--context-menu-item-background-color);
+    }
+
+    .menu-item:hover {
+      @apply --paper-item-hover;
+      color: var(--context-menu-item-color-hover);
+      background-color: var(--context-menu-item-background-color-hover);
     }
     </style>
-    <paper-progress hidden$="[[!querying]]" indeterminate></paper-progress>
     <template is="dom-if" if="[[dataUnavailable]]">
       <div class="empty-message">
         <p class="empty-info">Use <span class="code">[[_computeA11yCommand('s')]]</span> to save a request in the project. It will appear in this place.</p>
       </div>
     </template>
-    <template is="dom-repeat" items="[[items]]" id="list">
+    <template is="dom-repeat" items="[[projects]]" id="list">
       <div class="project-item-wrapper">
-        <paper-icon-item on-click="_toggleOpen" class$="project-item" role="menuitem">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem">
           <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
           <paper-item-body>
             <div class="project-name">[[item.name]]</div>
           </paper-item-body>
-          <paper-button on-click="_openProject" title="Open project details" class="action-button">Details</paper-button>
+          <paper-menu-button class="menu-wrapper">
+            <paper-icon-button class="menu-icon" icon="arc:more-vert" slot="dropdown-trigger" on-click="_moreClickHandler"></paper-icon-button>
+            <paper-listbox slot="dropdown-content">
+              <paper-item class="menu-item" title="Open project details" on-click="_openProject">Open details</paper-item>
+              <paper-item class="menu-item" title="Open all requests in the workspace" on-click="_openAllRequests">Open all in workspace</paper-item>
+              <paper-item class="menu-item" title="Replace current workspace with project request" on-click="_replaceAllRequests">Replace all in workspace</paper-item>
+            </paper-listbox>
+          </paper-menu-button>
           <paper-ripple></paper-ripple>
         </paper-icon-item>
-        <template is="dom-if" if="[[item.opened]]">
-          <projects-menu-requests
-            project="[[item]]"
-            project-id="[[item._id]]"
-            list-type="[[listType]]"></projects-menu-requests>
+        <template is="dom-if" class="requests-condition" restamp>
+          <projects-menu-requests project="[[item]]" project-id="[[item._id]]" list-type="[[listType]]"></projects-menu-requests>
         </template>
       </div>
     </template>
@@ -183,64 +199,30 @@ the License.
    * `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
    * `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
    * `--projects-menu-open-icon-color` | Color of the open project icon | `{}`
+   * `--context-menu-item-color` | Color of the context menu item | ``
+   * `--context-menu-item-background-color` | Background color of the context menu item | ``
+   * `--context-menu-item-color-hover` | Color of the context menu item when hovered | ``
+   * `--context-menu-item-background-color-hover` | Background color of the context menu item when hovered | ``
    *
    * @polymer
    * @customElement
    * @memberof UiElements
+   * @appliesMixin ArcComponents.ProjectsListConsumerMixin
    * @demo demo/index.html
    */
-  class ProjectsMenu extends Polymer.Element {
-    static get is() {return 'projects-menu';}
+  class ProjectsMenu extends
+  ArcComponents.ProjectsListConsumerMixin(Polymer.Element) {
+    static get is() {
+      return 'projects-menu';
+    }
     static get properties() {
       return {
-        /**
-         * Saved items restored from the datastore.
-         */
-        items: Array,
-        /**
-         * True when the element is querying the database for the data.
-         */
-        querying: {
-          type: Boolean,
-          readOnly: true,
-          notify: true
-        },
-        /**
-         * Computed value, true if the `items` property has values.
-         */
-        hasItems: {
-          type: Boolean,
-          value: false,
-          computed: '_computeHasItems(items.length)',
-          notify: true
-        },
-        /**
-         * Database query options for pagination.
-         * Override this value to change the query options like limit of the results in one call.
-         *
-         * This is query options passed to the PouchDB `allDocs` function. Note that it will not
-         * set `include_docs` option. A conviniet shortcut is to set the the `includeDocs` property
-         * and the directive will be added automatically.
-         */
-        queryOptions: {
-          type: Object,
-          readOnly: true,
-          value() {
-            return {
-              limit: 100,
-              descending: true,
-              // jscs:disable
-              include_docs: true
-              // jscs:enable
-            };
-          }
-        },
         /**
          * Computed value. True if query ended and there's no results.
          */
         dataUnavailable: {
           type: Boolean,
-          computed: '_computeDataUnavailable(hasItems, querying)'
+          computed: '_computeDataUnavailable(hasProjects)'
         },
         /**
          * Changes information density of list items.
@@ -259,219 +241,19 @@ the License.
       };
     }
 
-    // Returns a handler to the datastore instance
-    get _db() {
-      /* global PouchDB */
-      if (typeof PouchDB === 'undefined') {
-        console.error('PouchDB is not included into the application.');
-      }
-      return new PouchDB('legacy-projects');
-    }
-
-    constructor() {
-      super();
-      this.refresh = this.refresh.bind(this);
-      this._onDatabaseDestroy = this._onDatabaseDestroy.bind(this);
-      this._projectChanged = this._projectChanged.bind(this);
-      this._projectDeleted = this._projectDeleted.bind(this);
-    }
-
     connectedCallback() {
       super.connectedCallback();
-      window.addEventListener('data-imported', this.refresh);
-      window.addEventListener('datastore-destroyed', this._onDatabaseDestroy);
-      window.addEventListener('project-object-changed', this._projectChanged);
-      window.addEventListener('project-object-deleted', this._projectDeleted);
       if (!this.hasAttribute('role')) {
         this.setAttribute('role', 'menu');
       }
-      Polymer.RenderStatus.afterNextRender(this, () => {
-        if (!this.querying && !this.items) {
-          this.makeQuery();
-        }
-      });
-    }
-
-    disconnectedCallback() {
-      super.disconnectedCallback();
-      window.removeEventListener('data-imported', this.refresh);
-      window.removeEventListener('datastore-destroyed', this._onDatabaseDestroy);
-      window.removeEventListener('project-object-changed', this._projectChanged);
-      window.removeEventListener('project-object-deleted', this._projectDeleted);
     }
     /**
-     * Resets the state of the variables.
-     */
-    reset() {
-      if (this.queryOptions) {
-        delete this.queryOptions.startkey;
-        delete this.queryOptions.skip;
-      }
-      this._setQuerying(false);
-      this.set('items', []);
-    }
-    /**
-     * Refreshes the data from the datastore.
-     * It resets the query options, clears items and makes a query to the datastore.
-     */
-    refresh() {
-      this.reset();
-      this.makeQuery();
-    }
-
-    /**
-     * Handler for the `datastore-destroyed` custom event
-     * @param {CustomEvent} e
-     */
-    _onDatabaseDestroy(e) {
-      let datastore = e.detail.datastore;
-      if (!datastore || !datastore.length) {
-        return;
-      }
-      if (typeof datastore === 'string') {
-        datastore = [datastore];
-      }
-      if (datastore.indexOf('legacy-projects') !== -1 || datastore[0] === 'all') {
-        this._db.close()
-        .then(() => this.refresh());
-      }
-    }
-    /**
-     * Computes value for the `hasItems` property.
-     * @param {Number} length
+     * Computes value for the `dataUnavailable` property.
+     * @param {Boolean} hasProjects
      * @return {Boolean}
      */
-    _computeHasItems(length) {
-      return !!(length);
-    }
-    /**
-     * The function to call when new query for data is needed.
-     */
-    makeQuery() {
-      if (this.__makingQuery) {
-        return;
-      }
-      this.__makingQuery = true;
-      Polymer.RenderStatus.afterNextRender(this, () => {
-        this.__makingQuery = false;
-        this._loadPage();
-      });
-    }
-    /**
-     * Performs the query and processes the result.
-     */
-    _loadPage() {
-      const db = this._db;
-      this._setQuerying(true);
-      db.allDocs(this.queryOptions)
-      .then((response) => {
-        this._setQuerying(false);
-        if (response && response.rows.length > 0) {
-          // Set up pagination.
-          this.queryOptions.startkey = response.rows[response.rows.length - 1].key;
-          this.queryOptions.skip = 1;
-          const res = response.rows.map((item) => item.doc);
-          this.appendItems(res);
-          setTimeout(() => this._loadPage(), 50);
-        }
-      })
-      .catch((e) => {
-        this._setQuerying(false);
-        console.error('Query menu items', e);
-      });
-    }
-    /**
-     * Handler for the `project-object-changed` event.
-     * @param {CustomEvent} e
-     */
-    _projectChanged(e) {
-      if (e.cancelable) {
-        return;
-      }
-      const project = e.detail.project;
-      if (!this.items) {
-        this.set('items', [project]);
-        return;
-      }
-      const id = project._id;
-      if (!this.items) {
-        this.appendItems([project]);
-        return;
-      }
-      const index = this.items.findIndex((item) => item._id === id);
-      if (index === -1) {
-        this.appendItems([project]);
-        return;
-      }
-      const opened = this.get(`items.${index}.opened`);
-      project.opened = opened;
-      this.set(['items', index], project);
-    }
-    /**
-     * Handler for `project-object-deleted` event.
-     * Removes project from the list.
-     *
-     * @param {CustomEvent} e
-     */
-    _projectDeleted(e) {
-      if (e.cancelable || !this.items) {
-        return;
-      }
-      const id = e.detail.id;
-      const index = this.items.findIndex((item) => item._id === id);
-      if (index === -1) {
-        return;
-      }
-      this.splice('items', index, 1);
-    }
-    /**
-     * Appends a list of project objects to the list
-     * @param {Array} items List of projects
-     */
-    appendItems(items) {
-      if (!items || !items.length) {
-        return;
-      }
-      let all = this.items;
-      if (!all) {
-        items = this._prepareData(items);
-        this.set('items', items);
-      } else {
-        all = all.concat(items);
-        all = this._prepareData(all);
-        this.set('items', all);
-      }
-    }
-    /**
-     * Sorts projects list by `order` property.
-     *
-     * @param {Array} list List of projects objects
-     * @return {Array} Sorted list of projects
-     */
-    _prepareData(list) {
-      if (!list.length) {
-        return [];
-      }
-      list.sort((a, b) => {
-        if (a.order > b.order) {
-          return 1;
-        }
-        if (a.order < b.order) {
-          return -1;
-        }
-        if (a.name > b.name) {
-          return -1;
-        }
-        if (a.name < b.name) {
-          return 1;
-        }
-        return 0;
-      });
-      return list;
-    }
-    // Computes value for the `dataUnavailable` property.
-    _computeDataUnavailable(hasItems, querying) {
-      return !hasItems && !querying;
+    _computeDataUnavailable(hasProjects) {
+      return !hasProjects;
     }
     /**
      * Computes command label depending on a OS.
@@ -479,10 +261,14 @@ the License.
      * will be ctrl + `key`.
      *
      * @param {String} key The key combination as a sufix after the command key
+     * @param {?String} platform Current platform name. `navigator.platform` is used by default.
      * @return {String} Full command to display in command label.
      */
-    _computeA11yCommand(key) {
-      const isMac = navigator.platform.indexOf('Mac') !== -1;
+    _computeA11yCommand(key, platform) {
+      if (!platform) {
+        platform = navigator.platform;
+      }
+      const isMac = platform.indexOf('Mac') !== -1;
       let cmd = '';
       if (isMac) {
         cmd += 'meta+';
@@ -492,11 +278,114 @@ the License.
       cmd += key;
       return cmd;
     }
-    // Handler for the `tap` event on the item.
-    _openProject(e) {
+
+    /**
+     * Toggles opened project details.
+     * @param {ClickEvent} e
+     */
+    _toggleOpen(e) {
+      const path = e.composedPath();
+      let target;
+      for (let i = 0, len = path.length; i < len; i++) {
+        const node = path[i];
+        if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('project-item-wrapper')) {
+          target = node.querySelector('.requests-condition');
+          break;
+        }
+      }
+      if (!target) {
+        return;
+      }
+      target.if = !target.if;
+    }
+    /**
+     * Updates icon size CSS variable and notifies resize on the list when
+     * list type changes.
+     * @param {?String} type
+     */
+    _updateListStyles(type) {
+      let size;
+      switch (type) {
+        case 'comfortable': size = 48; break;
+        case 'compact': size = 36; break;
+        default: size = 56; break;
+      }
+      const value = `${size}px`;
+      if (!window.ShadyCSS) {
+        this.style.setProperty('--paper-item-icon-width', value);
+      } else {
+        this.updateStyles({
+          '--paper-item-icon-width': value
+        });
+      }
+    }
+
+    _cancelEvent(e) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
+    }
+    /**
+     * Cancels click event when "more" button is clicked.
+     * @param {ClickEvent} e
+     */
+    _moreClickHandler(e) {
+      this._cancelEvent(e);
+    }
+    /**
+     * Closes paper-listbox holding menu items.
+     * @param {ClickEvent} e
+     */
+    _deselectMenuOption(e) {
+      const listbox = e.target.parentElement;
+      listbox.selected = -1;
+    }
+    /**
+     * Handler for the click event "open all" menu item.
+     * @param {ClickEvent} e
+     */
+    _openAllRequests(e) {
+      this._cancelEvent(e);
+      this._deselectMenuOption(e);
+      const item = e.model.get('item');
+      this._dispatchOpenRequests(item, false);
+    }
+    /**
+     * Handler for the click event "replace all" menu item.
+     * @param {ClickEvent} e
+     */
+    _replaceAllRequests(e) {
+      this._cancelEvent(e);
+      this._deselectMenuOption(e);
+      const item = e.model.get('item');
+      this._dispatchOpenRequests(item, true);
+    }
+    /**
+     * Dispatches `workspace-open-project-requests` event end returns it.
+     * @param {Object} project Project object
+     * @param {?Boolean} replace When true the requests are to be replaced in the workspace.
+     * @return {CustomEvent}
+     */
+    _dispatchOpenRequests(project, replace) {
+      const e = new CustomEvent('workspace-open-project-requests', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          project,
+          replace
+        }
+      });
+      this.dispatchEvent(e);
+      return e;
+    }
+    /**
+     * Handler for the click event "details" menu item.
+     * Dispatches "navigate" event
+     * @param {ClickEvent} e
+     */
+    _openProject(e) {
+      this._cancelEvent(e);
+      this._deselectMenuOption(e);
       const id = e.model.get('item._id');
       this.dispatchEvent(new CustomEvent('navigate', {
         bubbles: true,
@@ -507,29 +396,6 @@ the License.
           id
         }
       }));
-    }
-    /**
-     * Toggles opened project details.
-     * @param {ClickEvent} e
-     */
-    _toggleOpen(e) {
-      e.model.set('item.opened', !e.model.get('item.opened'));
-    }
-    /**
-     * Updates icon size CSS variable and notifies resize on the list when
-     * list type changes.
-     * @param {?String} type
-     */
-    _updateListStyles(type) {
-      let size;
-      switch (type) {
-        case 'comfortable': size = 32; break;
-        case 'compact': size = 28; break;
-        default: size = 56; break;
-      }
-      this.updateStyles({
-        '--paper-item-icon-width': `${size}px`
-      });
     }
   }
   window.customElements.define(ProjectsMenu.is, ProjectsMenu);

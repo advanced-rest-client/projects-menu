@@ -17,6 +17,10 @@
 /// <reference path="../paper-button/paper-button.d.ts" />
 /// <reference path="../iron-icon/iron-icon.d.ts" />
 /// <reference path="../arc-icons/arc-icons.d.ts" />
+/// <reference path="../projects-list-consumer-mixin/projects-list-consumer-mixin.d.ts" />
+/// <reference path="../paper-icon-button/paper-icon-button.d.ts" />
+/// <reference path="../paper-menu-button/paper-menu-button.d.ts" />
+/// <reference path="../paper-listbox/paper-listbox.d.ts" />
 /// <reference path="projects-menu-requests.d.ts" />
 
 declare namespace UiElements {
@@ -52,38 +56,14 @@ declare namespace UiElements {
    * `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
    * `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
    * `--projects-menu-open-icon-color` | Color of the open project icon | `{}`
+   * `--context-menu-item-color` | Color of the context menu item | ``
+   * `--context-menu-item-background-color` | Background color of the context menu item | ``
+   * `--context-menu-item-color-hover` | Color of the context menu item when hovered | ``
+   * `--context-menu-item-background-color-hover` | Background color of the context menu item when hovered | ``
    */
-  class ProjectsMenu extends Polymer.Element {
-
-    /**
-     *  Returns a handler to the datastore instance
-     */
-    readonly _db: any;
-
-    /**
-     * Saved items restored from the datastore.
-     */
-    items: any[]|null|undefined;
-
-    /**
-     * True when the element is querying the database for the data.
-     */
-    readonly querying: boolean|null|undefined;
-
-    /**
-     * Computed value, true if the `items` property has values.
-     */
-    readonly hasItems: boolean|null|undefined;
-
-    /**
-     * Database query options for pagination.
-     * Override this value to change the query options like limit of the results in one call.
-     *
-     * This is query options passed to the PouchDB `allDocs` function. Note that it will not
-     * set `include_docs` option. A conviniet shortcut is to set the the `includeDocs` property
-     * and the directive will be added automatically.
-     */
-    readonly queryOptions: object|null|undefined;
+  class ProjectsMenu extends
+    ArcComponents.ProjectsListConsumerMixin(
+    Object) {
 
     /**
      * Computed value. True if query ended and there's no results.
@@ -101,69 +81,11 @@ declare namespace UiElements {
      */
     listType: string|null|undefined;
     connectedCallback(): void;
-    disconnectedCallback(): void;
-
-    /**
-     * Resets the state of the variables.
-     */
-    reset(): void;
-
-    /**
-     * Refreshes the data from the datastore.
-     * It resets the query options, clears items and makes a query to the datastore.
-     */
-    refresh(): void;
-
-    /**
-     * Handler for the `datastore-destroyed` custom event
-     */
-    _onDatabaseDestroy(e: CustomEvent|null): void;
-
-    /**
-     * Computes value for the `hasItems` property.
-     */
-    _computeHasItems(length: Number|null): Boolean|null;
-
-    /**
-     * The function to call when new query for data is needed.
-     */
-    makeQuery(): void;
-
-    /**
-     * Performs the query and processes the result.
-     */
-    _loadPage(): void;
-
-    /**
-     * Handler for the `project-object-changed` event.
-     */
-    _projectChanged(e: CustomEvent|null): void;
-
-    /**
-     * Handler for `project-object-deleted` event.
-     * Removes project from the list.
-     */
-    _projectDeleted(e: CustomEvent|null): void;
-
-    /**
-     * Appends a list of project objects to the list
-     *
-     * @param items List of projects
-     */
-    appendItems(items: any[]|null): void;
-
-    /**
-     * Sorts projects list by `order` property.
-     *
-     * @param list List of projects objects
-     * @returns Sorted list of projects
-     */
-    _prepareData(list: any[]|null): any[]|null;
 
     /**
      * Computes value for the `dataUnavailable` property.
      */
-    _computeDataUnavailable(hasItems: any, querying: any): any;
+    _computeDataUnavailable(hasProjects: Boolean|null): Boolean|null;
 
     /**
      * Computes command label depending on a OS.
@@ -171,14 +93,10 @@ declare namespace UiElements {
      * will be ctrl + `key`.
      *
      * @param key The key combination as a sufix after the command key
+     * @param platform Current platform name. `navigator.platform` is used by default.
      * @returns Full command to display in command label.
      */
-    _computeA11yCommand(key: String|null): String|null;
-
-    /**
-     * Handler for the `tap` event on the item.
-     */
-    _openProject(e: any): void;
+    _computeA11yCommand(key: String|null, platform: String|null): String|null;
 
     /**
      * Toggles opened project details.
@@ -190,6 +108,41 @@ declare namespace UiElements {
      * list type changes.
      */
     _updateListStyles(type: String|null): void;
+    _cancelEvent(e: any): void;
+
+    /**
+     * Cancels click event when "more" button is clicked.
+     */
+    _moreClickHandler(e: ClickEvent|null): void;
+
+    /**
+     * Closes paper-listbox holding menu items.
+     */
+    _deselectMenuOption(e: ClickEvent|null): void;
+
+    /**
+     * Handler for the click event "open all" menu item.
+     */
+    _openAllRequests(e: ClickEvent|null): void;
+
+    /**
+     * Handler for the click event "replace all" menu item.
+     */
+    _replaceAllRequests(e: ClickEvent|null): void;
+
+    /**
+     * Dispatches `workspace-open-project-requests` event end returns it.
+     *
+     * @param project Project object
+     * @param replace When true the requests are to be replaced in the workspace.
+     */
+    _dispatchOpenRequests(project: object|null, replace: Boolean|null): CustomEvent|null;
+
+    /**
+     * Handler for the click event "details" menu item.
+     * Dispatches "navigate" event
+     */
+    _openProject(e: ClickEvent|null): void;
   }
 }
 
