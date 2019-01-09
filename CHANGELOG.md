@@ -16,6 +16,24 @@
 
 
 
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/advanced-rest-client/projects-menu/compare/0.1.17...2.0.0) (2019-01-09)
+
+
+### Docs
+
+* Generating documentation ([7555d568eee8f478bc5b303d74a0e4b69ff3ba1c](https://github.com/advanced-rest-client/projects-menu/commit/7555d568eee8f478bc5b303d74a0e4b69ff3ba1c))
+
+### Fix
+
+* Adding missing import ([e4c715f1d47e5f5809287dd8e20638426473a751](https://github.com/advanced-rest-client/projects-menu/commit/e4c715f1d47e5f5809287dd8e20638426473a751))
+
+### Update
+
+* Updated Travis configuration to connect to Sauce Labs. ([bc477e25ab875b8e7c56f67682c1f5bacd3c5973](https://github.com/advanced-rest-client/projects-menu/commit/bc477e25ab875b8e7c56f67682c1f5bacd3c5973))
+
+
+
 <a name="0.1.19"></a>
 ## [0.1.19](https://github.com/advanced-rest-client/projects-menu/compare/0.1.17...0.1.19) (2018-05-08)
 
