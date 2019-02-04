@@ -560,6 +560,22 @@
         assert.isFalse(tpl.if);
       });
     });
+
+    suite('_stopEvent()', () => {
+      let element;
+      setup(() => {
+        element = fixture('Basic');
+      });
+
+      test('Calls stopPropagation()', () => {
+        const e = {
+          stopPropagation: () => {}
+        };
+        const spy = sinon.spy(e, 'stopPropagation');
+        element._stopEvent(e);
+        assert.isTrue(spy.called);
+      });
+    });
     </script>
 
   </body>

@@ -147,12 +147,12 @@ the License.
     </template>
     <template is="dom-repeat" items="[[projects]]" id="list">
       <div class="project-item-wrapper">
-        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent">
           <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
           <paper-item-body>
             <div class="project-name">[[item.name]]</div>
           </paper-item-body>
-          <paper-menu-button class="menu-wrapper">
+          <paper-menu-button class="menu-wrapper" horizontal-align="right">
             <paper-icon-button class="menu-icon" icon="arc:more-vert" slot="dropdown-trigger" on-click="_moreClickHandler"></paper-icon-button>
             <paper-listbox slot="dropdown-content">
               <paper-item class="menu-item" title="Open project details" on-click="_openProject">Open details</paper-item>
@@ -397,6 +397,10 @@ the License.
           id
         }
       }));
+    }
+
+    _stopEvent(e) {
+      e.stopPropagation();
     }
   }
   window.customElements.define(ProjectsMenu.is, ProjectsMenu);
