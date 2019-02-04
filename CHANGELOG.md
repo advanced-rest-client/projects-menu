@@ -194,3 +194,23 @@
 
 
 
+## [2.0.1](https://github.com/advanced-rest-client/projects-menu/compare/0.1.17...2.0.1) (2019-02-04)
+
+
+### Docs
+
+* Generating documentation ([7555d568eee8f478bc5b303d74a0e4b69ff3ba1c](https://github.com/advanced-rest-client/projects-menu/commit/7555d568eee8f478bc5b303d74a0e4b69ff3ba1c))
+* Updating Polymer docs ([d4f4712ff6c038be62e442a5ea4c3e35c75db997](https://github.com/advanced-rest-client/projects-menu/commit/d4f4712ff6c038be62e442a5ea4c3e35c75db997))
+
+### Fix
+
+* Adding missing import ([e4c715f1d47e5f5809287dd8e20638426473a751](https://github.com/advanced-rest-client/projects-menu/commit/e4c715f1d47e5f5809287dd8e20638426473a751))
+
+### Update
+
+* Updated Travis configuration to connect to Sauce Labs. ([bc477e25ab875b8e7c56f67682c1f5bacd3c5973](https://github.com/advanced-rest-client/projects-menu/commit/bc477e25ab875b8e7c56f67682c1f5bacd3c5973))
+* Updating dropdown menu behavior ([cac8d316f30459535f8409e6d9f6f8849d95d311](https://github.com/advanced-rest-client/projects-menu/commit/cac8d316f30459535f8409e6d9f6f8849d95d311))
+* Updating models to stable version ([1a6b8137f39b7c40eb9ea3224125550746345d08](https://github.com/advanced-rest-client/projects-menu/commit/1a6b8137f39b7c40eb9ea3224125550746345d08))
+
+
+
