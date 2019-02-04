@@ -8,10 +8,15 @@
  *   projects-menu.html
  */
 
+
+// tslint:disable:variable-name Describing an API that's defined elsewhere.
+// tslint:disable:no-any describes the API as best we are able today
+
 /// <reference path="../polymer/types/polymer-element.d.ts" />
 /// <reference path="../polymer/types/lib/utils/render-status.d.ts" />
 /// <reference path="../paper-item/paper-icon-item.d.ts" />
 /// <reference path="../paper-item/paper-item-body.d.ts" />
+/// <reference path="../paper-item/paper-item.d.ts" />
 /// <reference path="../paper-ripple/paper-ripple.d.ts" />
 /// <reference path="../paper-progress/paper-progress.d.ts" />
 /// <reference path="../paper-button/paper-button.d.ts" />
@@ -143,6 +148,7 @@ declare namespace UiElements {
      * Dispatches "navigate" event
      */
     _openProject(e: ClickEvent|null): void;
+    _stopEvent(e: any): void;
   }
 }
 

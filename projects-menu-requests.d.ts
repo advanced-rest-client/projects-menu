@@ -8,6 +8,9 @@
  *   projects-menu-requests.html
  */
 
+
+// tslint:disable:variable-name Describing an API that's defined elsewhere.
+
 /// <reference path="../polymer/types/polymer-element.d.ts" />
 /// <reference path="../http-method-label/http-method-label.d.ts" />
 /// <reference path="../dom-reorderer/dom-reorderer.d.ts" />
