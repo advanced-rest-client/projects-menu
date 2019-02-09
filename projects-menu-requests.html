@@ -73,7 +73,7 @@ the License.
     </template>
     <dom-reorderer on-dom-order-changed="_onReorder">
       <template is="dom-repeat" items="[[requests]]">
-        <paper-icon-item on-click="_openRequest" title$="[[item.url]]">
+        <paper-icon-item on-click="_openHandler" title$="[[item.url]]" class="request-list-item">
           <http-method-label method="[[item.method]]" slot="item-icon"></http-method-label>
           <paper-item-body two-line$="[[_hasTwoLines]]">
             <div class="name">[[item.name]]</div>
@@ -128,10 +128,6 @@ the License.
     }
     static get properties() {
       return {
-        /**
-         * ID of the project.
-         */
-        projectId: String,
         // True if the element currently is querying the datastore for the data
         querying: {type: Boolean, notify: true},
         /**
@@ -154,9 +150,7 @@ the License.
 
     connectedCallback() {
       super.connectedCallback();
-      if (!this.type) {
-        this.type = 'project';
-      }
+      this.type = 'project';
       this._isAttached = true;
     }
 
@@ -203,17 +197,9 @@ the License.
      * Called when the user clicks on an item in the UI
      * @param {ClickEvent} e
      */
-    _openRequest(e) {
+    _openHandler(e) {
       const id = e.model.get('item._id');
-      this.dispatchEvent(new CustomEvent('navigate', {
-        bubbles: true,
-        composed: true,
-        detail: {
-          base: 'request',
-          type: 'saved',
-          id: id
-        }
-      }));
+      this._openRequest(id);
     }
     /**
      * Handler for the list reorder event. Updates requests order in the
