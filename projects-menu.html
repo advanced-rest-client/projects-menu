@@ -25,7 +25,8 @@ the License.
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../paper-menu-button/paper-menu-button.html">
 <link rel="import" href="../paper-listbox/paper-listbox.html">
-
+<link rel="import" href="../uuid-generator/uuid-generator.html">
+<link rel="import" href="../paper-styles/shadow.html">
 <link rel="import" href="projects-menu-requests.html">
 <dom-module id="projects-menu">
   <template>
@@ -139,6 +140,10 @@ the License.
       color: var(--context-menu-item-color-hover);
       background-color: var(--context-menu-item-background-color-hover);
     }
+
+    .drop-target {
+      @apply --shadow-elevation-2dp;
+    }
     </style>
     <template is="dom-if" if="[[dataUnavailable]]">
       <div class="empty-message">
@@ -147,7 +152,7 @@ the License.
     </template>
     <template is="dom-repeat" items="[[projects]]" id="list">
       <div class="project-item-wrapper">
-        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler">
           <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
           <paper-item-body>
             <div class="project-name">[[item.name]]</div>
@@ -163,7 +168,7 @@ the License.
           <paper-ripple></paper-ripple>
         </paper-icon-item>
         <template is="dom-if" class="requests-condition" restamp>
-          <projects-menu-requests project="[[item]]" project-id="[[item._id]]" list-type="[[listType]]"></projects-menu-requests>
+          <projects-menu-requests project="[[item]]" project-id="[[item._id]]" list-type="[[listType]]" draggable-enabled="[[draggableEnabled]]"></projects-menu-requests>
         </template>
       </div>
     </template>
@@ -238,7 +243,11 @@ the License.
           type: String,
           reflectToAttribute: true,
           observer: '_updateListStyles'
-        }
+        },
+        /**
+         * Enables the comonent to accept drop action with a request.
+         */
+        draggableEnabled: {type: Boolean, value: false}
       };
     }
 
@@ -401,6 +410,183 @@ the License.
 
     _stopEvent(e) {
       e.stopPropagation();
+    }
+    /**
+     * Handler for `dragover` event on this element.
+     * @param {DragEvent} e
+     */
+    _dragoverHandler(e) {
+      if (!this.draggableEnabled) {
+        return;
+      }
+      if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+        return;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = this._computeDropEffect(e);
+      if (this.__dragOverIndex !== undefined) {
+        return;
+      }
+      this.__dragOverIndex = e.model.get('index');
+      this.__dragOverTimeout = setTimeout(() => this._openProjectDragOver(), 1000);
+      if (!e.currentTarget.classList.contains('drop-target')) {
+        e.currentTarget.classList.add('drop-target');
+      }
+    }
+    /**
+     * Computes value fro `dropEffect` property of the `DragEvent`.
+     * @param {DragEvent} e
+     * @return {String} Either `copy` or `move`.
+     */
+    _computeDropEffect(e) {
+      let allowed = e.dataTransfer.effectAllowed;
+      if (!allowed) {
+        // this 2 operations are supported here
+        allowed = 'copyMove';
+      }
+      allowed = allowed.toLowerCase();
+      const isHistory = e.dataTransfer.types.indexOf('arc/history-request') !== -1;
+      if ((e.ctrlKey || e.metaKey) && !isHistory && allowed.indexOf('move') !== -1) {
+        return 'move';
+      } else {
+        return 'copy';
+      }
+    }
+
+    _dragleaveHandler(e) {
+      if (!this.draggableEnabled) {
+        return;
+      }
+      if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+        return;
+      }
+      e.preventDefault();
+      this.__dragOverIndex = undefined;
+      this._cancelDragTimeout();
+      if (e.currentTarget.classList.contains('drop-target')) {
+        e.currentTarget.classList.remove('drop-target');
+      }
+    }
+
+    _dropHandler(e) {
+      if (!this.draggableEnabled) {
+        return;
+      }
+      if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+        return;
+      }
+      e.preventDefault();
+      this._cancelDragTimeout();
+      if (e.currentTarget.classList.contains('drop-target')) {
+        e.currentTarget.classList.remove('drop-target');
+      }
+      const data = e.dataTransfer.getData('arc/request-object');
+      if (!data) {
+        return;
+      }
+      const request = JSON.parse(data);
+      if (request.type === 'history') {
+        request.type = 'saved';
+        request.name = 'Unnamed';
+        /* global UuidGenerator */
+        const g = new UuidGenerator();
+        request._id = g.generate();
+        delete request._rev;
+      }
+      const project = e.model.get('item');
+      this._appendRequest(project, request);
+    }
+
+    _cancelDragTimeout() {
+      if (this.__dragOverTimeout) {
+        clearTimeout(this.__dragOverTimeout);
+        this.__dragOverTimeout = undefined;
+      }
+    }
+
+    _openProjectDragOver() {
+      if (!this.draggableEnabled) {
+        return;
+      }
+      this.__dragOverTimeout = undefined;
+      const index = this.__dragOverIndex;
+      this.__dragOverIndex = undefined;
+      const cond = this.shadowRoot.querySelectorAll('.requests-condition')[index];
+      cond.if = true;
+    }
+
+    _appendRequest(project, request) {
+      const id = request._id;
+      if (!project.requests) {
+        project.requests = [id];
+      } else {
+        const currentIndex = project.requests.indexOf(id);
+        if (currentIndex !== -1) {
+          project.requests.splice(currentIndex, 1);
+        }
+        project.requests.splice(0, 0, id);
+      }
+      if (!request.projects) {
+        request.projects = [];
+      }
+      let requestChanged = false;
+      if (request.projects.indexOf(project._id) === -1) {
+        request.projects.push(project._id);
+        requestChanged = true;
+      }
+      const e = this._dispatchProjectChanged(project);
+      return e.detail.result
+      .then(() => {
+        if (requestChanged) {
+          return this._dispatchRequestChanged('saved', request);
+        }
+      })
+      .catch((cause) => {
+        console.warn(cause);
+      });
+    }
+    /**
+     * Dispatches `project-object-changed` custom event and returns it.
+     * @param {Object} project Updated project to store.
+     * @return {CustomEvent} Disaptched custom event
+     */
+    _dispatchProjectChanged(project) {
+      return this._dispatch('project-object-changed', {
+        project
+      });
+    }
+    /**
+     * Dispatches `request-object-changed` custom event and returns it.
+     * @param {String} type Request type, `saved` or `history`.
+     * @param {Object} request Updated request to store.
+     * @return {CustomEvent} Disaptched custom event
+     */
+    _dispatchRequestChanged(type, request) {
+      return this._dispatch('request-object-changed', {
+        type,
+        request
+      });
+    }
+    /**
+     * Dispatches bubbling and composed custom event.
+     * By default the event is cancelable until `cancelable` property is set to false.
+     * @param {String} type Event type
+     * @param {?any} detail A detail to set
+     * @param {?Boolean} cancelable True if the event is cancelable (default value).
+     * @return {CustomEvent}
+     */
+    _dispatch(type, detail, cancelable) {
+      if (typeof cancelable !== 'boolean') {
+        cancelable = true;
+      }
+      const e = new CustomEvent(type, {
+        bubbles: true,
+        composed: true,
+        cancelable,
+        detail
+      });
+      this.dispatchEvent(e);
+      return e;
     }
   }
   window.customElements.define(ProjectsMenu.is, ProjectsMenu);

@@ -44,6 +44,12 @@
         <projects-menu list-type="default" no-auto-projects></projects-menu>
       </template>
     </test-fixture>
+
+    <test-fixture id="Draggable">
+      <template>
+        <projects-menu no-auto-projects draggable-enabled></projects-menu>
+      </template>
+    </test-fixture>
     <script>
     /* global DataGenerator, MockInteractions */
     suite('role attribute', () => {
@@ -574,6 +580,232 @@
         const spy = sinon.spy(e, 'stopPropagation');
         element._stopEvent(e);
         assert.isTrue(spy.called);
+      });
+    });
+
+    suite('_dispatch()', () => {
+      let element;
+      setup(() => {
+        element = fixture('Basic');
+      });
+      const eName = 'test-event';
+      const eDetail = 'test-detail';
+      test('Dispatches an event', () => {
+        const spy = sinon.spy();
+        element.addEventListener(eName, spy);
+        element._dispatch(eName);
+        assert.isTrue(spy.called);
+      });
+
+      test('Returns the event', () => {
+        const e = element._dispatch(eName);
+        assert.typeOf(e, 'customevent');
+      });
+
+      test('Event is cancelable', () => {
+        const e = element._dispatch(eName);
+        assert.isTrue(e.cancelable);
+      });
+
+      test('Event is composed', () => {
+        const e = element._dispatch(eName);
+        if (typeof e.composed !== 'undefined') {
+          assert.isTrue(e.composed);
+        }
+      });
+
+      test('Event bubbles', () => {
+        const e = element._dispatch(eName);
+        assert.isTrue(e.bubbles);
+      });
+
+      test('Event has detail', () => {
+        const e = element._dispatch(eName, eDetail);
+        assert.equal(e.detail, eDetail);
+      });
+    });
+
+    suite('_dispatchProjectChanged()', () => {
+      function handler(e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      let element;
+      setup(() => {
+        element = fixture('Basic');
+        element.addEventListener('project-object-changed', handler);
+      });
+
+      teardown(() => {
+        element.removeEventListener('project-object-changed', handler);
+      });
+
+      test('Calls _dispatch()', () => {
+        const project = {name: 'test'};
+        const spy = sinon.spy(element, '_dispatch');
+        element._dispatchProjectChanged(project);
+        assert.equal(spy.args[0][0], 'project-object-changed');
+        assert.deepEqual(spy.args[0][1].project, project);
+      });
+
+      test('Returns the event', () => {
+        const project = {name: 'test'};
+        const e = element._dispatchProjectChanged(project);
+        assert.typeOf(e, 'customevent');
+        assert.equal(e.type, 'project-object-changed');
+      });
+    });
+
+    suite('_dispatchRequestChanged()', () => {
+      function handler(e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      let element;
+      setup(() => {
+        element = fixture('Basic');
+        element.addEventListener('request-object-changed', handler);
+      });
+
+      teardown(() => {
+        element.removeEventListener('request-object-changed', handler);
+      });
+
+      test('Calls _dispatch()', () => {
+        const request = {name: 'test'};
+        const spy = sinon.spy(element, '_dispatch');
+        element._dispatchRequestChanged('saved', request);
+        assert.equal(spy.args[0][0], 'request-object-changed');
+        assert.deepEqual(spy.args[0][1].request, request);
+        assert.deepEqual(spy.args[0][1].type, 'saved');
+      });
+
+      test('Returns the event', () => {
+        const request = {name: 'test'};
+        const e = element._dispatchRequestChanged(request);
+        assert.typeOf(e, 'customevent');
+        assert.equal(e.type, 'request-object-changed');
+      });
+    });
+
+    suite('_computeDropEffect()', () => {
+      let element;
+      setup(function() {
+        element = fixture('Basic');
+      });
+
+      function createEvent(types) {
+        if (!types) {
+          types = ['arc/request-object'];
+        }
+        const e = {
+          dataTransfer: {
+            types
+          }
+        };
+        return e;
+      }
+
+      test('Returns "copy" by default', () => {
+        const e = createEvent();
+        const result = element._computeDropEffect(e);
+        assert.equal(result, 'copy');
+      });
+
+      test('Returns "move" when configuration is set', () => {
+        const e = createEvent();
+        e.ctrlKey = true;
+        const result = element._computeDropEffect(e);
+        assert.equal(result, 'move');
+      });
+
+      test('Returns "copy" when a history item', () => {
+        const e = createEvent(['arc/request-object', 'arc/history-request']);
+        e.ctrlKey = true;
+        const result = element._computeDropEffect(e);
+        assert.equal(result, 'copy');
+      });
+
+      test('Returns "copy" when effectAllowed is not move', () => {
+        const e = createEvent();
+        e.ctrlKey = true;
+        e.dataTransfer.effectAllowed = 'link';
+        const result = element._computeDropEffect(e);
+        assert.equal(result, 'copy');
+      });
+    });
+
+    suite('_dragoverHandler()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Draggable');
+        element.projects = DataGenerator.generateProjects();
+        flush(() => done());
+      });
+
+      function dispatchEvent(types, node) {
+        if (!types) {
+          types = ['arc/request-object'];
+        }
+        node = node || element.shadowRoot.querySelector('.project-item');
+        const e = new Event('dragover', {cancelable: true, bubbles: true});
+        e.dataTransfer = new DataTransfer();
+        types.forEach((type) => {
+          e.dataTransfer.setData(type, 'test');
+        });
+        node.dispatchEvent(e);
+        return e;
+      }
+
+      test('Ignores event when draggableEnabled is not set', () => {
+        element.draggableEnabled = false;
+        element._dragoverHandler();
+        // no error
+      });
+
+      test('Ignores event when arc/request-object is not set', () => {
+        dispatchEvent(['other']);
+        assert.isFalse(element.classList.contains('drop-target'));
+      });
+
+      test('Cancels the event', () => {
+        const e = dispatchEvent();
+        assert.isTrue(e.defaultPrevented);
+      });
+
+      test('Calls _computeDropEffect()', () => {
+        const spy = sinon.spy(element, '_computeDropEffect');
+        dispatchEvent();
+        assert.isTrue(spy.called);
+      });
+
+      test('Does nothing when __dragOverIndex is set', () => {
+        element.__dragOverIndex = 1;
+        dispatchEvent();
+        assert.isUndefined(element.__dragOverTimeout);
+      });
+
+      test('Sets __dragOverIndex', () => {
+        dispatchEvent();
+        assert.equal(element.__dragOverIndex, 0);
+      });
+
+      test('Sets __dragOverTimeout', () => {
+        dispatchEvent();
+        assert.typeOf(element.__dragOverTimeout, 'number');
+      });
+
+      test('Sets drop-target on the target', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        dispatchEvent();
+        assert.isTrue(node.classList.contains('drop-target'));
+      });
+
+      test('Sets drop-target on the target only once', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        node.classList.add('drop-target');
+        dispatchEvent();
+        assert.isTrue(node.classList.contains('drop-target'));
       });
     });
     </script>
