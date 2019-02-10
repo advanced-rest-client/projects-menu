@@ -75,6 +75,10 @@ the License.
     .drop-pointer::before {
       content: "⇨";
     }
+
+    paper-icon-item {
+      position: relative;
+    }
     </style>
     <template is="dom-if" if="[[querying]]">
       <paper-progress indeterminate></paper-progress>
@@ -85,13 +89,13 @@ the License.
       </div>
     </template>
     <template is="dom-repeat" items="[[requests]]" id="repeater">
-      <paper-icon-item on-click="_openHandler" title$="[[item.url]]" class="request-list-item" draggable$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart">
+      <paper-icon-item on-click="_openHandler" title$="[[item.url]]" class="request-list-item" draggable$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart" on-dragend="_dragEnd">
         <http-method-label method="[[item.method]]" slot="item-icon"></http-method-label>
         <paper-item-body two-line$="[[_hasTwoLines]]">
           <div class="name">[[item.name]]</div>
           <div secondary>[[item.url]]</div>
-          <paper-ripple></paper-ripple>
         </paper-item-body>
+        <paper-ripple noink="[[noink]]"></paper-ripple>
       </paper-icon-item>
     </template>
     <paper-toast id="reorderError" class="error-toast" text="Unable to reorder requests. Please, report an issue."></paper-toast>
@@ -153,7 +157,8 @@ the License.
         /**
          * Enables the comonent to accept drop action with a request.
          */
-        draggableEnabled: {type: Boolean, value: false, observer: '_draggableChanged'}
+        draggableEnabled: {type: Boolean, value: false, observer: '_draggableChanged'},
+        noink: Boolean
       };
     }
 
@@ -488,6 +493,7 @@ the License.
       if (!this.draggableEnabled) {
         return;
       }
+      this.disableRippling();
       e.stopPropagation();
       const request = e.model.get('item');
       const data = JSON.stringify(request);
@@ -495,6 +501,28 @@ the License.
       e.dataTransfer.setData('arc/saved-request', request._id);
       e.dataTransfer.setData('arc-source/project-menu', this.projectId);
       e.dataTransfer.effectAllowed = 'copyMove';
+      e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+    }
+    /**
+     * Handles `dragend` event dispatched when the drag operation is over.
+     * Restores ripple effects.
+     */
+    _dragEnd() {
+      this.noink = false;
+    }
+    /**
+     * Sets `noink` property that is propagated to each `paper-ripple` element
+     * and terminates any running animation.
+     * This function is used by `dragstart` event handler to remove ripples
+     * which causes the dragged image to be bigger than it really is.
+     */
+    disableRippling() {
+      this.noink = true;
+      const node = this.shadowRoot.querySelector('paper-ripple[animating]');
+      if (!node || !node.ripples || !node.ripples.length) {
+        return;
+      }
+      node.ripples.forEach((ripple) => node.removeRipple(ripple));
     }
     /**
      * Computes value for the `draggable` property of the list item.

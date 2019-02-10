@@ -247,6 +247,20 @@ declare namespace UiElements {
      * @returns `true` or `false` (as string) depending on the argument.
      */
     _computeDraggableValue(draggableEnabled: Boolean|null): String|null;
+
+    /**
+     * Handles `dragend` event dispatched when the drag operation is over.
+     * Restores ripple effects.
+     */
+    _dragEnd(): void;
+
+    /**
+     * Sets `noink` property that is propagated to each `paper-ripple` element
+     * and terminates any running animation.
+     * This function is used by `dragstart` event handler to remove ripples
+     * which causes the dragged image to be bigger than it really is.
+     */
+    disableRippling(): void;
   }
 }
 

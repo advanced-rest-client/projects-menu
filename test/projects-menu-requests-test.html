@@ -284,6 +284,12 @@
         dispatch(element);
         assert.isUndefined(spy.args[0][0].dropEffect);
       });
+
+      test('Calls disableRippling()', () => {
+        const spy = sinon.spy(element, 'disableRippling');
+        dispatch(element);
+        assert.isTrue(spy.called);
+      });
     });
 
     suite('_computeDraggableValue()', () => {
@@ -887,6 +893,45 @@
         .then(() => {
           assert.typeOf(spy.args[1], 'array');
         });
+      });
+    });
+
+    suite('disableRippling()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Basic');
+        element.requests = DataGenerator.generateRequests({
+          requestsSize: 4
+        });
+        flush(() => done());
+      });
+
+      test('Sets noink property', () => {
+        element.disableRippling();
+        assert.isTrue(element.noink);
+      });
+
+      test('Removes ripples', (done) => {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        MockInteractions.tap(node);
+        flush(() => {
+          element.disableRippling();
+          const ripple = node.querySelector('paper-ripple');
+          assert.lengthOf(ripple.ripples, 0);
+          done();
+        });
+      });
+    });
+
+    suite('_dragEnd()', () => {
+      let element;
+      setup(function() {
+        element = fixture('Basic');
+      });
+
+      test('Sets noink property', () => {
+        element._dragEnd();
+        assert.isFalse(element.noink);
       });
     });
     </script>

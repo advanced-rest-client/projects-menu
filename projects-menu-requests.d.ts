@@ -74,6 +74,7 @@ declare namespace UiElements {
      * Enables the comonent to accept drop action with a request.
      */
     draggableEnabled: boolean|null|undefined;
+    noink: boolean|null|undefined;
     connectedCallback(): void;
     disconnectedCallback(): void;
     _draggableChanged(value: any): void;
@@ -161,6 +162,20 @@ declare namespace UiElements {
      * mime type. The request data is a serialized JSON with request model.
      */
     _dragStart(e: Event|null): void;
+
+    /**
+     * Handles `dragend` event dispatched when the drag operation is over.
+     * Restores ripple effects.
+     */
+    _dragEnd(): void;
+
+    /**
+     * Sets `noink` property that is propagated to each `paper-ripple` element
+     * and terminates any running animation.
+     * This function is used by `dragstart` event handler to remove ripples
+     * which causes the dragged image to be bigger than it really is.
+     */
+    disableRippling(): void;
 
     /**
      * Computes value for the `draggable` property of the list item.

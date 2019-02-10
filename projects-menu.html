@@ -152,7 +152,7 @@ the License.
     </template>
     <template is="dom-repeat" items="[[projects]]" id="list">
       <div class="project-item-wrapper">
-        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler" draggable$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler" draggable$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart" on-dragend="_dragEnd">
           <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
           <paper-item-body>
             <div class="project-name">[[item.name]]</div>
@@ -165,7 +165,7 @@ the License.
               <paper-item class="menu-item" title="Replace current workspace with project request" on-click="_replaceAllRequests">Replace all in workspace</paper-item>
             </paper-listbox>
           </paper-menu-button>
-          <paper-ripple></paper-ripple>
+          <paper-ripple noink="[[noink]]"></paper-ripple>
         </paper-icon-item>
         <template is="dom-if" class="requests-condition" restamp>
           <projects-menu-requests project="[[item]]" project-id="[[item._id]]" list-type="[[listType]]" draggable-enabled="[[draggableEnabled]]"></projects-menu-requests>
@@ -613,12 +613,14 @@ the License.
       if (!this.draggableEnabled) {
         return;
       }
+      this.disableRippling();
       e.stopPropagation();
       const project = e.model.get('item');
       const data = JSON.stringify(project);
       e.dataTransfer.setData('arc/project-object', data);
       e.dataTransfer.setData('arc-source/project-menu', project._id);
       e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
     }
     /**
      * Computes value for the `draggable` property of the list item.
@@ -629,6 +631,27 @@ the License.
      */
     _computeDraggableValue(draggableEnabled) {
       return draggableEnabled ? 'true' : 'false';
+    }
+    /**
+     * Handles `dragend` event dispatched when the drag operation is over.
+     * Restores ripple effects.
+     */
+    _dragEnd() {
+      this.noink = false;
+    }
+    /**
+     * Sets `noink` property that is propagated to each `paper-ripple` element
+     * and terminates any running animation.
+     * This function is used by `dragstart` event handler to remove ripples
+     * which causes the dragged image to be bigger than it really is.
+     */
+    disableRippling() {
+      this.noink = true;
+      const node = this.shadowRoot.querySelector('paper-ripple[animating]');
+      if (!node || !node.ripples || !node.ripples.length) {
+        return;
+      }
+      node.ripples.forEach((ripple) => node.removeRipple(ripple));
     }
   }
   window.customElements.define(ProjectsMenu.is, ProjectsMenu);
