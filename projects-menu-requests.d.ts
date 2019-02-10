@@ -10,10 +10,10 @@
 
 
 // tslint:disable:variable-name Describing an API that's defined elsewhere.
+// tslint:disable:no-any describes the API as best we are able today
 
 /// <reference path="../polymer/types/polymer-element.d.ts" />
 /// <reference path="../http-method-label/http-method-label.d.ts" />
-/// <reference path="../dom-reorderer/dom-reorderer.d.ts" />
 /// <reference path="../paper-toast/paper-toast.d.ts" />
 /// <reference path="../paper-progress/paper-progress.d.ts" />
 /// <reference path="../paper-item/paper-icon-item.d.ts" />
@@ -21,6 +21,7 @@
 /// <reference path="../paper-ripple/paper-ripple.d.ts" />
 /// <reference path="../requests-list-mixin/requests-list-mixin.d.ts" />
 /// <reference path="../requests-list-mixin/requests-list-styles.d.ts" />
+/// <reference path="../uuid-generator/uuid-generator.d.ts" />
 
 declare namespace UiElements {
 
@@ -59,11 +60,6 @@ declare namespace UiElements {
     Object) {
 
     /**
-     * ID of the project.
-     */
-    projectId: string|null|undefined;
-
-    /**
      * True if the element currently is querying the datastore for the data
      */
     querying: boolean|null|undefined;
@@ -73,8 +69,16 @@ declare namespace UiElements {
      */
     readonly dataUnavailable: boolean|null|undefined;
     _isAttached: boolean|null|undefined;
+
+    /**
+     * Enables the comonent to accept drop action with a request.
+     */
+    draggableEnabled: boolean|null|undefined;
     connectedCallback(): void;
     disconnectedCallback(): void;
+    _draggableChanged(value: any): void;
+    _addDndEvents(): void;
+    _removeDndEvents(): void;
 
     /**
      * Queries for the data when state or `projectId` changes
@@ -91,13 +95,82 @@ declare namespace UiElements {
     /**
      * Called when the user clicks on an item in the UI
      */
-    _openRequest(e: ClickEvent|null): void;
+    _openHandler(e: ClickEvent|null): void;
 
     /**
-     * Handler for the list reorder event. Updates requests order in the
-     * datastore.
+     * Removes drop pointer from shadow root.
      */
-    _onReorder(): void;
+    _removeDropPointer(): void;
+
+    /**
+     * Removes drop pointer to shadow root.
+     *
+     * @param ref A list item to be used as a reference point.
+     */
+    _createDropPointer(ref: Element|null): void;
+
+    /**
+     * Handler for `dragover` event on this element. If the dagged item is compatible
+     * it renders drop message.
+     */
+    _dragoverHandler(e: DragEvent|null): void;
+
+    /**
+     * Computes value fro `dropEffect` property of the `DragEvent`.
+     *
+     * @returns Either `copy` or `move`.
+     */
+    _computeDropEffect(e: DragEvent|null): String|null;
+
+    /**
+     * Handler for `dragleave` event on this element.
+     */
+    _dragleaveHandler(e: DragEvent|null): void;
+
+    /**
+     * Handler for `drag` event on this element. If the dagged item is compatible
+     * it adds request to saved requests.
+     */
+    _dropHandler(e: DragEvent|null): void;
+
+    /**
+     * Handles logic when drop event is `move` in effect.
+     * Removes reference to old project (if exists). It uses `arc-source/project-detail`
+     * data from event which should hold project ID.
+     *
+     * @param request Request object
+     * @returns True if the request object changed.
+     */
+    _handleMoveDrop(e: DragEvent|null, request: object|null): Boolean|null;
+
+    /**
+     * Updates project and request objects and inserts the request at a position.
+     *
+     * @param index The position in requests order
+     * @param request Request to update
+     * @param forceRequestUpdate Forces update on request object even
+     * when position hasn't change.
+     */
+    _insertRequestAt(index: Number|null, request: object|null, forceRequestUpdate: Boolean|null): Promise<any>|null;
+    _dispatchProjectChanged(project: any): any;
+
+    /**
+     * Handler for the `dragstart` event added to the list item when `draggableEnabled`
+     * is set to true.
+     * This function sets request data on the `dataTransfer` object with `arc/request-object`
+     * mime type. The request data is a serialized JSON with request model.
+     */
+    _dragStart(e: Event|null): void;
+
+    /**
+     * Computes value for the `draggable` property of the list item.
+     * When `draggableEnabled` is set it returns true which is one of the
+     * conditions to enable drag and drop on an element.
+     *
+     * @param draggableEnabled Current value of `draggableEnabled`
+     * @returns `true` or `false` (as string) depending on the argument.
+     */
+    _computeDraggableValue(draggableEnabled: Boolean|null): String|null;
   }
 }
 

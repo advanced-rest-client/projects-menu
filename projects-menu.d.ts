@@ -26,6 +26,8 @@
 /// <reference path="../paper-icon-button/paper-icon-button.d.ts" />
 /// <reference path="../paper-menu-button/paper-menu-button.d.ts" />
 /// <reference path="../paper-listbox/paper-listbox.d.ts" />
+/// <reference path="../uuid-generator/uuid-generator.d.ts" />
+/// <reference path="../paper-styles/shadow.d.ts" />
 /// <reference path="projects-menu-requests.d.ts" />
 
 declare namespace UiElements {
@@ -85,6 +87,17 @@ declare namespace UiElements {
      * - `compact` - enables list that has 40px heigth (touch recommended)
      */
     listType: string|null|undefined;
+
+    /**
+     * Enables the comonent to accept drop action with a request.
+     */
+    draggableEnabled: boolean|null|undefined;
+
+    /**
+     * A timeout after which the project item is opened when dragging a
+     * request over.
+     */
+    dragOpenTimeout: number|null|undefined;
     connectedCallback(): void;
 
     /**
@@ -149,6 +162,91 @@ declare namespace UiElements {
      */
     _openProject(e: ClickEvent|null): void;
     _stopEvent(e: any): void;
+
+    /**
+     * Handler for `dragover` event on this element.
+     */
+    _dragoverHandler(e: DragEvent|null): void;
+
+    /**
+     * Computes value for `dropEffect` property of the `DragEvent`.
+     *
+     * @returns Either `copy` or `move`.
+     */
+    _computeDropEffect(e: DragEvent|null): String|null;
+
+    /**
+     * Handler for `dragleave` event on project node.
+     */
+    _dragleaveHandler(e: DragEvent|null): void;
+
+    /**
+     * Handler for `drag` event on this element. If the dagged item is compatible
+     * it adds request to the project
+     */
+    _dropHandler(e: DragEvent|null): void;
+
+    /**
+     * Cancels the timer set in the dragover event
+     */
+    _cancelDragTimeout(): void;
+
+    /**
+     * Opens the project from the draggable event.
+     */
+    _openProjectDragOver(): void;
+
+    /**
+     * Adds dropped request to a project.
+     *
+     * @param project Project model
+     * @param request Request model
+     */
+    _appendRequest(project: object|null, request: object|null): Promise<any>|null;
+
+    /**
+     * Dispatches `project-object-changed` custom event and returns it.
+     *
+     * @param project Updated project to store.
+     * @returns Disaptched custom event
+     */
+    _dispatchProjectChanged(project: object|null): CustomEvent|null;
+
+    /**
+     * Dispatches `process-error` so the application can notify user about the event.
+     *
+     * @param cause Error object
+     * @returns Disaptched custom event
+     */
+    _dispatchProcessError(cause: Error|null): CustomEvent|null;
+
+    /**
+     * Dispatches bubbling and composed custom event.
+     * By default the event is cancelable until `cancelable` property is set to false.
+     *
+     * @param type Event type
+     * @param detail A detail to set
+     * @param cancelable True if the event is cancelable (default value).
+     */
+    _dispatch(type: String|null, detail: any|null, cancelable: Boolean|null): CustomEvent|null;
+
+    /**
+     * Handler for the `dragstart` event added to the list item when `draggableEnabled`
+     * is set to true.
+     * This function sets request data on the `dataTransfer` object with `arc/request-object`
+     * mime type. The request data is a serialized JSON with request model.
+     */
+    _dragStart(e: Event|null): void;
+
+    /**
+     * Computes value for the `draggable` property of the list item.
+     * When `draggableEnabled` is set it returns true which is one of the
+     * conditions to enable drag and drop on an element.
+     *
+     * @param draggableEnabled Current value of `draggableEnabled`
+     * @returns `true` or `false` (as string) depending on the argument.
+     */
+    _computeDraggableValue(draggableEnabled: Boolean|null): String|null;
   }
 }
 
