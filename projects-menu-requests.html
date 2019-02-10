@@ -303,7 +303,8 @@ the License.
       }
       e.dataTransfer.dropEffect = this._computeDropEffect(e);
       e.preventDefault();
-      const item = e.path.find((node) => node.nodeName === 'PAPER-ICON-ITEM');
+      const path = e.path || e.composedPath();
+      const item = path.find((node) => node.nodeName === 'PAPER-ICON-ITEM');
       if (!item) {
         return;
       }

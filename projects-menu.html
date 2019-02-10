@@ -152,7 +152,7 @@ the License.
     </template>
     <template is="dom-repeat" items="[[projects]]" id="list">
       <div class="project-item-wrapper">
-        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler" draggable$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart">
           <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
           <paper-item-body>
             <div class="project-name">[[item.name]]</div>
@@ -247,7 +247,12 @@ the License.
         /**
          * Enables the comonent to accept drop action with a request.
          */
-        draggableEnabled: {type: Boolean, value: false}
+        draggableEnabled: {type: Boolean, value: false},
+        /**
+         * A timeout after which the project item is opened when dragging a
+         * request over.
+         */
+        dragOpenTimeout: {type: Number, value: 700}
       };
     }
 
@@ -377,16 +382,10 @@ the License.
      * @return {CustomEvent}
      */
     _dispatchOpenRequests(project, replace) {
-      const e = new CustomEvent('workspace-open-project-requests', {
-        bubbles: true,
-        composed: true,
-        detail: {
-          project,
-          replace
-        }
+      return this._dispatch('workspace-open-project-requests', {
+        project,
+        replace
       });
-      this.dispatchEvent(e);
-      return e;
     }
     /**
      * Handler for the click event "details" menu item.
@@ -397,15 +396,11 @@ the License.
       this._cancelEvent(e);
       this._deselectMenuOption(e);
       const id = e.model.get('item._id');
-      this.dispatchEvent(new CustomEvent('navigate', {
-        bubbles: true,
-        composed: true,
-        detail: {
-          base: 'project',
-          type: 'details',
-          id
-        }
-      }));
+      this._dispatch('navigate', {
+        base: 'project',
+        type: 'details',
+        id
+      });
     }
 
     _stopEvent(e) {
@@ -428,13 +423,13 @@ the License.
         return;
       }
       this.__dragOverIndex = e.model.get('index');
-      this.__dragOverTimeout = setTimeout(() => this._openProjectDragOver(), 1000);
+      this.__dragOverTimeout = setTimeout(() => this._openProjectDragOver(), this.dragOpenTimeout);
       if (!e.currentTarget.classList.contains('drop-target')) {
         e.currentTarget.classList.add('drop-target');
       }
     }
     /**
-     * Computes value fro `dropEffect` property of the `DragEvent`.
+     * Computes value for `dropEffect` property of the `DragEvent`.
      * @param {DragEvent} e
      * @return {String} Either `copy` or `move`.
      */
@@ -452,7 +447,10 @@ the License.
         return 'copy';
       }
     }
-
+    /**
+     * Handler for `dragleave` event on project node.
+     * @param {DragEvent} e
+     */
     _dragleaveHandler(e) {
       if (!this.draggableEnabled) {
         return;
@@ -467,7 +465,11 @@ the License.
         e.currentTarget.classList.remove('drop-target');
       }
     }
-
+    /**
+     * Handler for `drag` event on this element. If the dagged item is compatible
+     * it adds request to the project
+     * @param {DragEvent} e
+     */
     _dropHandler(e) {
       if (!this.draggableEnabled) {
         return;
@@ -485,25 +487,21 @@ the License.
         return;
       }
       const request = JSON.parse(data);
-      if (request.type === 'history') {
-        request.type = 'saved';
-        request.name = 'Unnamed';
-        /* global UuidGenerator */
-        const g = new UuidGenerator();
-        request._id = g.generate();
-        delete request._rev;
-      }
       const project = e.model.get('item');
       this._appendRequest(project, request);
     }
-
+    /**
+     * Cancels the timer set in the dragover event
+     */
     _cancelDragTimeout() {
       if (this.__dragOverTimeout) {
         clearTimeout(this.__dragOverTimeout);
         this.__dragOverTimeout = undefined;
       }
     }
-
+    /**
+     * Opens the project from the draggable event.
+     */
     _openProjectDragOver() {
       if (!this.draggableEnabled) {
         return;
@@ -514,8 +512,23 @@ the License.
       const cond = this.shadowRoot.querySelectorAll('.requests-condition')[index];
       cond.if = true;
     }
-
+    /**
+     * Adds dropped request to a project.
+     * @param {Object} project Project model
+     * @param {Object} request Request model
+     * @return {Promise}
+     */
     _appendRequest(project, request) {
+      if (request.type === 'history') {
+        request.type = 'saved';
+        /* global UuidGenerator */
+        const g = new UuidGenerator();
+        request._id = g.generate();
+        delete request._rev;
+      }
+      if (!request.name) {
+        request.name = 'Unnamed';
+      }
       const id = request._id;
       if (!project.requests) {
         project.requests = [id];
@@ -538,12 +551,13 @@ the License.
       return e.detail.result
       .then(() => {
         if (requestChanged) {
-          return this._dispatchRequestChanged('saved', request);
+          const e = this._dispatch('save-request', {
+            request
+          });
+          return e.detail.result;
         }
       })
-      .catch((cause) => {
-        console.warn(cause);
-      });
+      .catch((cause) => this._dispatchProcessError(cause));
     }
     /**
      * Dispatches `project-object-changed` custom event and returns it.
@@ -556,15 +570,15 @@ the License.
       });
     }
     /**
-     * Dispatches `request-object-changed` custom event and returns it.
-     * @param {String} type Request type, `saved` or `history`.
-     * @param {Object} request Updated request to store.
+     * Dispatches `process-error` so the application can notify user about the event.
+     * @param {Error} cause Error object
      * @return {CustomEvent} Disaptched custom event
      */
-    _dispatchRequestChanged(type, request) {
-      return this._dispatch('request-object-changed', {
-        type,
-        request
+    _dispatchProcessError(cause) {
+      console.warn(cause);
+      const message = cause.message || 'Unknown error';
+      return this._dispatch('process-error', {
+        message
       });
     }
     /**
@@ -587,6 +601,34 @@ the License.
       });
       this.dispatchEvent(e);
       return e;
+    }
+    /**
+     * Handler for the `dragstart` event added to the list item when `draggableEnabled`
+     * is set to true.
+     * This function sets request data on the `dataTransfer` object with `arc/request-object`
+     * mime type. The request data is a serialized JSON with request model.
+     * @param {Event} e
+     */
+    _dragStart(e) {
+      if (!this.draggableEnabled) {
+        return;
+      }
+      e.stopPropagation();
+      const project = e.model.get('item');
+      const data = JSON.stringify(project);
+      e.dataTransfer.setData('arc/project-object', data);
+      e.dataTransfer.setData('arc-source/project-menu', project._id);
+      e.dataTransfer.effectAllowed = 'copy';
+    }
+    /**
+     * Computes value for the `draggable` property of the list item.
+     * When `draggableEnabled` is set it returns true which is one of the
+     * conditions to enable drag and drop on an element.
+     * @param {Boolean} draggableEnabled Current value of `draggableEnabled`
+     * @return {String} `true` or `false` (as string) depending on the argument.
+     */
+    _computeDraggableValue(draggableEnabled) {
+      return draggableEnabled ? 'true' : 'false';
     }
   }
   window.customElements.define(ProjectsMenu.is, ProjectsMenu);

@@ -69,6 +69,23 @@
     .draggable-toggle {
       margin: 12px 0;
     }
+
+    #dragOutput {
+      display: block;
+      padding: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background-color: #FFF8E1;
+    }
+
+    .drop-target {
+      border: 2px transparent dashed;
+      box-sizing: border-box;
+    }
+
+    .drop-target.drag-over {
+      border-color: #8BC34A;
+    }
     </style>
   </custom-style>
 </head>
@@ -82,7 +99,7 @@
       <section class="centered card demo">
         <div class="menu-item">
           <h3>History</h3>
-          <history-menu id="history" list-type="[[listType]]" draggable-enabled></history-menu>
+          <history-menu id="historyMenu" list-type="[[listType]]" draggable-enabled></history-menu>
         </div>
         <div class="menu-item">
           <h3>Saved</h3>
@@ -90,8 +107,13 @@
         </div>
         <div class="menu-item">
           <h3>Projects</h3>
-          <projects-menu id="menu" list-type="[[listType]]" draggable-enabled="[[draggableEnabled]]"></projects-menu>
+          <projects-menu id="projects" list-type="[[listType]]" draggable-enabled="[[draggableEnabled]]"></projects-menu>
         </div>
+      </section>
+
+      <section class="centered card drop-target" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler">
+        Drop object here
+        <output id="dragOutput" hidden></output>
       </section>
 
       <section class="centered card">
@@ -159,7 +181,7 @@
     scope.deleteProjectIndex = -1;
     scope.draggableEnabled = true;
     scope.refresh = function() {
-      document.getElementById('menu').refreshProjects();
+      document.getElementById('projects').refreshProjects();
       document.getElementById('saved').refresh();
     };
 
@@ -205,7 +227,7 @@
       })
       .then(() => {
         document.getElementById('genToast').opened = true;
-        document.getElementById('history').refresh();
+        document.getElementById('historyMenu').refresh();
       });
     };
 
@@ -224,7 +246,39 @@
     };
 
     scope.refreshHistory = function() {
-      document.getElementById('history').refresh();
+      document.getElementById('historyMenu').refresh();
+    };
+
+    scope._dragoverHandler = function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      e.currentTarget.classList.add('drag-over');
+    };
+
+    scope._dragleaveHandler = function(e) {
+      e.currentTarget.classList.remove('drag-over');
+    };
+
+    scope._dropHandler = function(e) {
+      e.preventDefault();
+      let data;
+      if (e.dataTransfer.types.indexOf('arc/request-object') !== -1) {
+        data = e.dataTransfer.getData('arc/request-object');
+      } else if (e.dataTransfer.types.indexOf('arc/project-object') !== -1) {
+        data = e.dataTransfer.getData('arc/project-object');
+      }
+      e.currentTarget.classList.remove('drag-over');
+      if (data) {
+        data = JSON.parse(data);
+        console.log(data);
+      } else {
+        data = '';
+      }
+      const out = document.getElementById('dragOutput');
+      out.innerText = JSON.stringify(data, null, 2);
+      if (out.hasAttribute('hidden')) {
+        out.removeAttribute('hidden');
+      }
     };
   })(document.getElementById('app'));
   </script>

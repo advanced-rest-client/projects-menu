@@ -258,23 +258,13 @@
     });
 
     suite('_deselectMenuOption()', () => {
-      suiteSetup(() => {
-        return DataGenerator.insertSavedRequestData();
-      });
-
-      suiteTeardown(() => {
-        return DataGenerator.destroySavedRequestData();
-      });
-
       let element;
       setup((done) => {
         element = fixture('Basic');
-        element._updateProjectsList()
-        .then(() => {
-          flush(() => {
-            done();
-          });
+        element.projects = DataGenerator.generateProjects({
+          projectsSize: 2
         });
+        flush(() => done());
       });
 
       test('Calls _deselectMenuOption()', () => {
@@ -294,23 +284,13 @@
     });
 
     suite('_openProject()', () => {
-      suiteSetup(() => {
-        return DataGenerator.insertSavedRequestData();
-      });
-
-      suiteTeardown(() => {
-        return DataGenerator.destroySavedRequestData();
-      });
-
       let element;
       setup((done) => {
         element = fixture('Basic');
-        element._updateProjectsList()
-        .then(() => {
-          flush(() => {
-            done();
-          });
+        element.projects = DataGenerator.generateProjects({
+          projectsSize: 2
         });
+        flush(() => done());
       });
 
       test('Calls _openProject() when menu item click', () => {
@@ -342,57 +322,53 @@
         assert.equal(menu.selected, -1);
       });
 
-      test('Dispatches navigate event', () => {
+      test('Calls _dispatch() with "navigate"', () => {
         const item = element.shadowRoot.querySelectorAll('paper-listbox paper-item')[0];
-        const spy = sinon.spy();
-        element.addEventListener('navigate', spy);
+        const spy = sinon.spy(element, '_dispatch');
         MockInteractions.tap(item);
-        assert.isTrue(spy.called);
+        assert.equal(spy.args[0][0], 'navigate');
       });
 
-      test('The event has base set', () => {
+      test('Calls _dispatch() with detail argument', () => {
         const item = element.shadowRoot.querySelectorAll('paper-listbox paper-item')[0];
-        const spy = sinon.spy();
-        element.addEventListener('navigate', spy);
+        const spy = sinon.spy(element, '_dispatch');
         MockInteractions.tap(item);
-        assert.equal(spy.args[0][0].detail.base, 'project');
+        assert.equal(spy.args[0][1].base, 'project', 'Base is set');
+        assert.equal(spy.args[0][1].type, 'details', 'Type is set');
+        assert.typeOf(spy.args[0][1].id, 'string', 'Id is set');
+      });
+    });
+
+    suite('_dispatchOpenRequests()', () => {
+      let element;
+      let project;
+      setup(() => {
+        element = fixture('Basic');
+        project = DataGenerator.createProjectObject();
       });
 
-      test('The event has type set', () => {
-        const item = element.shadowRoot.querySelectorAll('paper-listbox paper-item')[0];
-        const spy = sinon.spy();
-        element.addEventListener('navigate', spy);
-        MockInteractions.tap(item);
-        assert.equal(spy.args[0][0].detail.type, 'details');
+      test('Calls _dispatch() with "workspace-open-project-requests"', () => {
+        const spy = sinon.spy(element, '_dispatch');
+        element._dispatchOpenRequests(project, false);
+        assert.equal(spy.args[0][0], 'workspace-open-project-requests');
       });
 
-      test('The event has id set', () => {
-        const item = element.shadowRoot.querySelectorAll('paper-listbox paper-item')[0];
-        const spy = sinon.spy();
-        element.addEventListener('navigate', spy);
-        MockInteractions.tap(item);
-        assert.typeOf(spy.args[0][0].detail.id, 'string');
+      test('Calls _dispatch() with detail argument', () => {
+        const spy = sinon.spy(element, '_dispatch');
+        element._dispatchOpenRequests(project, false);
+        assert.deepEqual(spy.args[0][1].project, project, 'Project is set');
+        assert.isFalse(spy.args[0][1].replace, 'Replace is set');
       });
     });
 
     suite('_openAllRequests()', () => {
-      suiteSetup(() => {
-        return DataGenerator.insertSavedRequestData();
-      });
-
-      suiteTeardown(() => {
-        return DataGenerator.destroySavedRequestData();
-      });
-
       let element;
       setup((done) => {
         element = fixture('Basic');
-        element._updateProjectsList()
-        .then(() => {
-          flush(() => {
-            done();
-          });
+        element.projects = DataGenerator.generateProjects({
+          projectsSize: 2
         });
+        flush(() => done());
       });
 
       test('Calls _cancelEvent()', () => {
@@ -448,23 +424,13 @@
     });
 
     suite('_replaceAllRequests()', () => {
-      suiteSetup(() => {
-        return DataGenerator.insertSavedRequestData();
-      });
-
-      suiteTeardown(() => {
-        return DataGenerator.destroySavedRequestData();
-      });
-
       let element;
       setup((done) => {
         element = fixture('Basic');
-        element._updateProjectsList()
-        .then(() => {
-          flush(() => {
-            done();
-          });
+        element.projects = DataGenerator.generateProjects({
+          projectsSize: 2
         });
+        flush(() => done());
       });
 
       test('Calls _cancelEvent()', () => {
@@ -520,23 +486,13 @@
     });
 
     suite('_toggleOpen()', () => {
-      suiteSetup(() => {
-        return DataGenerator.insertSavedRequestData();
-      });
-
-      suiteTeardown(() => {
-        return DataGenerator.destroySavedRequestData();
-      });
-
       let element;
       setup((done) => {
         element = fixture('Basic');
-        element._updateProjectsList()
-        .then(() => {
-          flush(() => {
-            done();
-          });
+        element.projects = DataGenerator.generateProjects({
+          projectsSize: 2
         });
+        flush(() => done());
       });
 
       test('Toggles item open when clicked on the container', () => {
@@ -656,7 +612,7 @@
       });
     });
 
-    suite('_dispatchRequestChanged()', () => {
+    suite('_dispatchProcessError()', () => {
       function handler(e) {
         e.stopPropagation();
         e.preventDefault();
@@ -672,19 +628,22 @@
       });
 
       test('Calls _dispatch()', () => {
-        const request = {name: 'test'};
         const spy = sinon.spy(element, '_dispatch');
-        element._dispatchRequestChanged('saved', request);
-        assert.equal(spy.args[0][0], 'request-object-changed');
-        assert.deepEqual(spy.args[0][1].request, request);
-        assert.deepEqual(spy.args[0][1].type, 'saved');
+        element._dispatchProcessError(new Error('test'));
+        assert.equal(spy.args[0][0], 'process-error');
+        assert.deepEqual(spy.args[0][1].message, 'test');
+      });
+
+      test('Uses default message', () => {
+        const spy = sinon.spy(element, '_dispatch');
+        element._dispatchProcessError('Not an error');
+        assert.deepEqual(spy.args[0][1].message, 'Unknown error');
       });
 
       test('Returns the event', () => {
-        const request = {name: 'test'};
-        const e = element._dispatchRequestChanged(request);
+        const e = element._dispatchProcessError(new Error('test'));
         assert.typeOf(e, 'customevent');
-        assert.equal(e.type, 'request-object-changed');
+        assert.equal(e.type, 'process-error');
       });
     });
 
@@ -740,6 +699,7 @@
       setup(function(done) {
         element = fixture('Draggable');
         element.projects = DataGenerator.generateProjects();
+        element.dragOpenTimeout = 1;
         flush(() => done());
       });
 
@@ -764,8 +724,9 @@
       });
 
       test('Ignores event when arc/request-object is not set', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
         dispatchEvent(['other']);
-        assert.isFalse(element.classList.contains('drop-target'));
+        assert.isFalse(node.classList.contains('drop-target'));
       });
 
       test('Cancels the event', () => {
@@ -806,6 +767,405 @@
         node.classList.add('drop-target');
         dispatchEvent();
         assert.isTrue(node.classList.contains('drop-target'));
+      });
+
+      test('Calls _openProjectDragOver() after timeout', (done) => {
+        dispatchEvent();
+        const spy = sinon.spy(element, '_openProjectDragOver');
+        setTimeout(() => {
+          assert.isTrue(spy.called);
+          done();
+        }, 10);
+      });
+    });
+
+    suite('_dragleaveHandler()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Draggable');
+        element.projects = DataGenerator.generateProjects();
+        flush(() => done());
+      });
+
+      function dispatch(element, types) {
+        if (!types) {
+          types = ['arc/request-object'];
+        }
+        const e = new Event('dragleave', {cancelable: true});
+        e.dataTransfer = new DataTransfer();
+        types.forEach((type) => {
+          e.dataTransfer.setData(type, 'test');
+        });
+        const node = element.shadowRoot.querySelector('.project-item');
+        node.dispatchEvent(e);
+        return e;
+      }
+
+      test('Ignores event when draggableEnabled is not set', () => {
+        element.draggableEnabled = false;
+        element._dragleaveHandler();
+        // no error
+      });
+
+      test('Ignores event when arc/request-object is not set', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        dispatch(element, ['other']);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Ignores event when arc/saved-request is set', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        dispatch(element, ['arc/saved-request']);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Cancels the event', () => {
+        const e = dispatch(element);
+        assert.isTrue(e.defaultPrevented);
+      });
+
+      test('Removes drop-target class on the element', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        node.classList.add('drop-target');
+        dispatch(element);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Removes class name only once', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        dispatch(element);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Clears __dragOverIndex', () => {
+        element.__dragOverIndex = 1;
+        dispatch(element);
+        assert.isUndefined(element.__dragOverIndex);
+      });
+
+      test('Calls _cancelDragTimeout()', () => {
+        const spy = sinon.spy(element, '_cancelDragTimeout');
+        dispatch(element);
+        assert.isTrue(spy.called);
+      });
+    });
+
+    suite('_dropHandler()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Draggable');
+        element.projects = DataGenerator.generateProjects();
+        // easier than handling the event
+        element._appendRequest = () => {};
+        flush(() => done());
+      });
+
+      function dispatch(element, types, content) {
+        if (!types) {
+          types = ['arc/request-object'];
+        }
+        if (content === undefined) {
+          content = '{"_id":"test-id", "_rev":"test-rev"}';
+        }
+        const e = new Event('drop', {cancelable: true});
+        e.dataTransfer = new DataTransfer();
+        types.forEach((type) => {
+          e.dataTransfer.setData(type, content);
+        });
+        const node = element.shadowRoot.querySelector('.project-item');
+        node.dispatchEvent(e);
+        return e;
+      }
+
+      test('Ignores event when draggableEnabled is not set', () => {
+        element.draggableEnabled = false;
+        element._dropHandler();
+        // no error
+      });
+
+      test('Ignores event when arc/request-object is not set', () => {
+        dispatch(element, ['other']);
+        assert.isFalse(element.classList.contains('drop-target'));
+      });
+
+      test('Cancels the event', () => {
+        const e = dispatch(element);
+        assert.isTrue(e.defaultPrevented);
+      });
+
+      test('Removes drop-target class on the element', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        node.classList.add('drop-target');
+        dispatch(element);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Removes class name only once', () => {
+        const node = element.shadowRoot.querySelector('.project-item');
+        dispatch(element);
+        assert.isFalse(node.classList.contains('drop-target'));
+      });
+
+      test('Calls _appendRequest() with request', () => {
+        const spy = sinon.spy(element, '_appendRequest');
+        dispatch(element);
+        assert.deepEqual(spy.args[0][0], element.projects[0]);
+        assert.deepEqual(spy.args[0][1], {
+          _id: 'test-id',
+          _rev: 'test-rev'
+        });
+      });
+
+      test('Ignores when no request object data', () => {
+        const spy = sinon.spy(element, '_appendRequest');
+        dispatch(element, null, '');
+        assert.isFalse(spy.called);
+      });
+    });
+
+    suite('_cancelDragTimeout()', () => {
+      let element;
+      setup(function() {
+        element = fixture('Basic');
+      });
+
+      test('Clears timeout when set', () => {
+        element.__dragOverTimeout = 1;
+        element._cancelDragTimeout();
+        assert.isUndefined(element.__dragOverTimeout);
+      });
+
+      test('Does nothing when no timer', () => {
+        element.__dragOverTimeout = undefined;
+        element._cancelDragTimeout();
+        // This is for coverage
+      });
+    });
+
+    suite('_openProjectDragOver()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Draggable');
+        element.projects = DataGenerator.generateProjects();
+        element.__dragOverIndex = 1;
+        flush(() => done());
+      });
+
+      test('Ignores event when draggableEnabled is not set', () => {
+        element.draggableEnabled = false;
+        element._openProjectDragOver();
+        // no error
+      });
+
+      test('Clears __dragOverTimeout', () => {
+        element.__dragOverTimeout = 1;
+        element._openProjectDragOver();
+        assert.isUndefined(element.__dragOverTimeout);
+      });
+
+      test('Sets condition value', () => {
+        element._openProjectDragOver();
+        assert.isUndefined(element.__dragOverTimeout);
+        const cond = element.shadowRoot.querySelectorAll('.requests-condition')[1];
+        assert.isTrue(cond.if);
+      });
+    });
+
+    suite('_appendRequest()', () => {
+      function projectHandler(e) {
+        e.preventDefault();
+        e.detail.result = Promise.resolve({});
+      }
+
+      function requestHandler(e) {
+        e.preventDefault();
+        e.detail.result = Promise.resolve();
+      }
+
+      suiteSetup(() => {
+        document.body.addEventListener('project-object-changed', projectHandler);
+        document.body.addEventListener('save-request', requestHandler);
+      });
+
+      suiteTeardown(() => {
+        document.body.removeEventListener('project-object-changed', projectHandler);
+        document.body.removeEventListener('save-request', requestHandler);
+      });
+
+      let element;
+      let project;
+      let request;
+      setup(function(done) {
+        element = fixture('Draggable');
+        project = DataGenerator.createProjectObject();
+        request = DataGenerator.generateSavedItem();
+        flush(() => done());
+      });
+
+      test('Handles history request', () => {
+        request = DataGenerator.generateHistoryObject();
+        request.type = 'history';
+        const id = request._id;
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.equal(request.type, 'saved', 'Type is saved');
+          assert.typeOf(request._id, 'string', 'Id is set');
+          assert.notEqual(request._id, id, 'Id is regenerated');
+          assert.isUndefined(request._rev, '_rev is removed');
+        });
+      });
+
+      test('Sets request name when misssing', () => {
+        delete request.name;
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.equal(request.name, 'Unnamed');
+        });
+      });
+
+      test('Creates "requests" array on the project', () => {
+        delete project.requests;
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(project.requests, [request._id]);
+        });
+      });
+
+      test('Adds request to the beginning of the array', () => {
+        project.requests = ['test'];
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(project.requests, [request._id, 'test']);
+        });
+      });
+
+      test('Moves request to the beginning of the array', () => {
+        project.requests = ['test', request._id];
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(project.requests, [request._id, 'test']);
+        });
+      });
+
+      test('Creates "projects" array on the request', () => {
+        delete request.projects;
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(request.projects, [project._id]);
+        });
+      });
+
+      test('Add project to the request', () => {
+        request.projects = ['other'];
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(request.projects, ['other', project._id]);
+        });
+      });
+
+      test('Calls _dispatchProjectChanged()', () => {
+        const spy = sinon.spy(element, '_dispatchProjectChanged');
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.deepEqual(spy.args[0][0], project);
+        });
+      });
+
+      test('Calls _dispatch() with save-request', () => {
+        const spy = sinon.spy(element, '_dispatch');
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.equal(spy.args[1][0], 'save-request');
+          assert.deepEqual(spy.args[1][1].request, request);
+        });
+      });
+
+      test('Won\'t dispatch save-request when project already set', () => {
+        request.projects = [project._id];
+        const spy = sinon.spy(element, '_dispatch');
+        return element._appendRequest(project, request)
+        .then(() => {
+          assert.isUndefined(spy.args[1]);
+        });
+      });
+    });
+
+    suite('_computeDraggableValue()', () => {
+      let element;
+      setup(function() {
+        element = fixture('Basic');
+      });
+
+      test('Returns "true" when draggableEnabled is set', () => {
+        const result = element._computeDraggableValue(true);
+        assert.equal(result, 'true');
+      });
+
+      test('Returns "false" when draggableEnabled is not set', () => {
+        const result = element._computeDraggableValue(false);
+        assert.equal(result, 'false');
+      });
+
+      test('Request item has dragging disabled by default', (done) => {
+        element.projects = DataGenerator.generateProjects();
+        flush(() => {
+          const node = element.shadowRoot.querySelector('paper-icon-item');
+          assert.equal(node.getAttribute('draggable'), 'false');
+          done();
+        });
+      });
+
+      test('Request item has dragging enabled', (done) => {
+        element.draggableEnabled = true;
+        element.projects = DataGenerator.generateProjects();
+        flush(() => {
+          const node = element.shadowRoot.querySelector('paper-icon-item');
+          assert.equal(node.getAttribute('draggable'), 'true');
+          done();
+        });
+      });
+    });
+
+    suite('_dragStart()', () => {
+      let element;
+      setup(function(done) {
+        element = fixture('Draggable');
+        element.projects = DataGenerator.generateProjects();
+        flush(() => done());
+      });
+
+      function dispatch(element) {
+        const node = element.shadowRoot.querySelector('paper-icon-item');
+        const e = new Event('dragstart');
+        e.dataTransfer = new DataTransfer();
+        node.dispatchEvent(e);
+      }
+
+      test('Calls _dragStart()', () => {
+        const spy = sinon.spy(element, '_dragStart');
+        dispatch(element);
+        assert.isTrue(spy.called);
+      });
+
+      test('Sets arc/project-object transfer data', () => {
+        const spy = sinon.spy(element, '_dragStart');
+        dispatch(element);
+        const data = spy.args[0][0].dataTransfer.getData('arc/project-object');
+        assert.typeOf(data, 'string');
+      });
+
+      test('Sets arc-source/project-menu transfer data', () => {
+        const spy = sinon.spy(element, '_dragStart');
+        dispatch(element);
+        const data = spy.args[0][0].dataTransfer.getData('arc-source/project-menu');
+        assert.equal(data, element.projects[0]._id);
+      });
+
+      test('Ignores event when draggableEnabled not set', () => {
+        element.draggableEnabled = false;
+        const spy = sinon.spy(element, '_dragStart');
+        dispatch(element);
+        assert.isUndefined(spy.args[0][0].dropEffect);
       });
     });
     </script>
