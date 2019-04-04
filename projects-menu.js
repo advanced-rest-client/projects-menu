@@ -1,0 +1,673 @@
+/**
+@license
+Copyright 2018 The Advanced REST client authors <arc@mulesoft.com>
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+*/
+import {PolymerElement} from '../../@polymer/polymer/polymer-element.js';
+import '../../@polymer/polymer/lib/utils/render-status.js';
+import '../../@polymer/paper-item/paper-icon-item.js';
+import '../../@polymer/paper-item/paper-item-body.js';
+import '../../@polymer/paper-item/paper-item.js';
+import '../../@polymer/paper-ripple/paper-ripple.js';
+import '../../@polymer/paper-progress/paper-progress.js';
+import '../../@polymer/paper-button/paper-button.js';
+import '../../@polymer/iron-icon/iron-icon.js';
+import '../../@advanced-rest-client/arc-icons/arc-icons.js';
+import {ProjectsListConsumerMixin} from
+  '../../@advanced-rest-client/projects-list-consumer-mixin/projects-list-consumer-mixin.js';
+import '../../@polymer/paper-icon-button/paper-icon-button.js';
+import '../../@polymer/paper-menu-button/paper-menu-button.js';
+import '../../@polymer/paper-listbox/paper-listbox.js';
+import '../../@advanced-rest-client/uuid-generator/uuid-generator.js';
+import './projects-menu-requests.js';
+import {html} from '../../@polymer/polymer/lib/utils/html-tag.js';
+/**
+ * A list of projects in the ARC main menu.
+ *
+ * The element uses direct implementation of the PouchDB to make a query to the
+ * datastore. It also listens to events fired by the `arc-model` elements to
+ * update state of the saved items.
+ *
+ * ### Example
+ *
+ * ```html
+ * <projects-menu
+ *  selected-project="project-id"
+ *  selected-request="id-of-selected-request"></projects-menu>
+ * ```
+ * ### Styling
+ * `<saved-menu>` provides the following custom properties and mixins for styling:
+ *
+ * Custom property | Description | Default
+ * ----------------|-------------|----------
+ * `--projects-menu` | Mixin applied to the element | `{}`
+ * `--projects-menu-background-color` | Background color of the menu | `#f7f7f7`
+ * `--projects-menu-selected-method-label-background-color` | Background color of the POST method label when the item is focused | `#fff`
+ * `--projects-menu-list` | Mixin applied to the list element. | `{}`
+ * `--projects-menu-list-item` | Mixin applied to each list item | `{}`
+ * `--projects-menu-selected-item-background-color` | Background color of the selected list item | `rgba(255, 152, 0, 0.24)`
+ * `--projects-menu-name-label` | Mixin applied to the name label | `{}`
+ * `--projects-menu-project-icon-color` | Color of the "project" icon | `rgba(0, 0, 0, 0.64)`
+ * `--projects-menu-selected-project-icon-color` | Color of the "project" icon when selected | `#F57C00`
+ * `--arc-menu-empty-info-color` | Color applied to the empty info section | ``
+ * `--arc-menu-empty-info-title-color` | Color applied to the title in the empty info section | ``
+ * `--projects-menu-open-icon-color` | Color of the open project icon | `{}`
+ * `--context-menu-item-color` | Color of the context menu item | ``
+ * `--context-menu-item-background-color` | Background color of the context menu item | ``
+ * `--context-menu-item-color-hover` | Color of the context menu item when hovered | ``
+ * `--context-menu-item-background-color-hover` | Background color of the context menu item when hovered | ``
+ *
+ * @polymer
+ * @customElement
+ * @memberof UiElements
+ * @appliesMixin ProjectsListConsumerMixin
+ * @demo demo/index.html
+ */
+class ProjectsMenu extends ProjectsListConsumerMixin(PolymerElement) {
+  static get template() {
+    return html`
+    <style>
+    :host {
+      display: block;
+      background-color: var(--projects-menu-background-color, inherit);
+      position: relative;
+      overflow: auto;
+      flex: 1;
+      flex-basis: 0.000000001px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    paper-icon-item {
+      font-weight: 400;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .project-name {
+      font-size: 14px;
+    }
+
+    paper-progress {
+      width: calc(100% - 32px);
+      margin: 0 16px;
+      position: absolute;
+    }
+
+    .empty-info {
+      font-size: var(--arc-font-body1-font-size);
+      font-weight: var(--arc-font-body1-font-weight);
+      line-height: var(--arc-font-body1-line-height);
+      font-style: italic;
+      margin: 1em 16px;
+      color: var(--arc-menu-empty-info-color);
+    }
+
+    .empty-message {
+      flex: 1;
+      flex-basis: 0.000000001px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .project-icon {
+      color: var(--projects-menu-project-icon-color, rgba(0, 0, 0, 0.64));
+      margin-right: 4px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .menu-wrapper {
+      padding: 0;
+    }
+
+    :host([list-type="comfortable"]) paper-icon-item {
+      min-height: 40px;
+    }
+
+    :host([list-type="comfortable"]) [slot="item-icon"] {
+      height: 20px;
+      width: 20px;
+    }
+
+    :host([list-type="comfortable"]) .menu-icon {
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+    }
+
+    :host([list-type="comfortable"]) .menu-wrapper {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+    }
+
+    :host([list-type="compact"]) paper-icon-item {
+      min-height: 36px;
+    }
+
+    :host([list-type="compact"]) [slot="item-icon"] {
+      height: 16px;
+      width: 16px;
+    }
+
+    :host([list-type="compact"]) .menu-icon {
+      width: 28px;
+      height: 28px;
+      padding: 4px;
+    }
+
+    :host([list-type="comfortable"]) .menu-wrapper {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+    }
+
+    .menu-item {
+      cursor: pointer;
+      padding: var(--arc-list-item-padding, var(--paper-item_-_padding));
+      border-left: var(--arc-list-item-border-left);
+      border-right: var(--arc-list-item-border-right);
+      border-bottom: var(--arc-list-item-border-bottom);
+      border-top: var(--arc-list-item-border-top);
+      font-size: var(--arc-list-item-font-size);
+      color: var(--context-menu-item-color);
+      background-color: var(--context-menu-item-background-color);
+    }
+
+    .menu-item:hover {
+      padding: var(--arc-list-item-padding-hover, var(--paper-item_-_padding));
+      border-left: var(--arc-list-item-border-left-hover);
+      border-right: var(--arc-list-item-border-right-hover);
+      border-bottom: var(--arc-list-item-border-bottom-hover);
+      border-top: var(--arc-list-item-border-top-hover);
+      color: var(--context-menu-item-color-hover);
+      background-color: var(--context-menu-item-background-color-hover);
+    }
+
+    .drop-target {
+      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                  0 1px 5px 0 rgba(0, 0, 0, 0.12),
+                  0 3px 1px -2px rgba(0, 0, 0, 0.2);
+    }
+    </style>
+    <template is="dom-if" if="[[dataUnavailable]]">
+      <div class="empty-message">
+        <p class="empty-info">Use <span class="code">[[_computeA11yCommand('s')]]</span> to save a request in the project. It will appear in this place.</p>
+      </div>
+    </template>
+    <template is="dom-repeat" items="[[projects]]" id="list">
+      <div class="project-item-wrapper">
+        <paper-icon-item on-click="_toggleOpen" class="project-item" role="menuitem" on-iron-overlay-opened="_stopEvent" on-iron-overlay-closed="_stopEvent" on-dragover="_dragoverHandler" on-dragleave="_dragleaveHandler" on-drop="_dropHandler" draggable\$="[[_computeDraggableValue(draggableEnabled)]]" on-dragstart="_dragStart" on-dragend="_dragEnd">
+          <iron-icon icon="arc:collections-bookmark" class="project-icon" slot="item-icon"></iron-icon>
+          <paper-item-body>
+            <div class="project-name">[[item.name]]</div>
+          </paper-item-body>
+          <paper-menu-button class="menu-wrapper" horizontal-align="right">
+            <paper-icon-button class="menu-icon" icon="arc:more-vert" slot="dropdown-trigger" on-click="_moreClickHandler"></paper-icon-button>
+            <paper-listbox slot="dropdown-content">
+              <paper-item class="menu-item" title="Open project details" on-click="_openProject">Open details</paper-item>
+              <paper-item class="menu-item" title="Open all requests in the workspace" on-click="_openAllRequests">Open all in workspace</paper-item>
+              <paper-item class="menu-item" title="Replace current workspace with project request" on-click="_replaceAllRequests">Replace all in workspace</paper-item>
+            </paper-listbox>
+          </paper-menu-button>
+          <paper-ripple noink="[[noink]]"></paper-ripple>
+        </paper-icon-item>
+        <template is="dom-if" class="requests-condition" restamp="">
+          <projects-menu-requests project="[[item]]" project-id="[[item._id]]" list-type="[[listType]]" draggable-enabled="[[draggableEnabled]]"></projects-menu-requests>
+        </template>
+      </div>
+    </template>
+`;
+  }
+
+  static get is() {
+    return 'projects-menu';
+  }
+  static get properties() {
+    return {
+      /**
+       * Computed value. True if query ended and there's no results.
+       */
+      dataUnavailable: {
+        type: Boolean,
+        computed: '_computeDataUnavailable(hasProjects)'
+      },
+      /**
+       * Changes information density of list items.
+       * By default it uses material's peper item with two lines (72px heigth)
+       * Possible values are:
+       *
+       * - `default` or empty - regular list view
+       * - `comfortable` - enables MD single line list item vie (52px heigth)
+       * - `compact` - enables list that has 40px heigth (touch recommended)
+       */
+      listType: {
+        type: String,
+        reflectToAttribute: true,
+        observer: '_updateListStyles'
+      },
+      /**
+       * Enables the comonent to accept drop action with a request.
+       */
+      draggableEnabled: {type: Boolean, value: false},
+      /**
+       * A timeout after which the project item is opened when dragging a
+       * request over.
+       */
+      dragOpenTimeout: {type: Number, value: 700}
+    };
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this.hasAttribute('role')) {
+      this.setAttribute('role', 'menu');
+    }
+  }
+  /**
+   * Computes value for the `dataUnavailable` property.
+   * @param {Boolean} hasProjects
+   * @return {Boolean}
+   */
+  _computeDataUnavailable(hasProjects) {
+    return !hasProjects;
+  }
+  /**
+   * Computes command label depending on a OS.
+   * For Mac it will be cmd + `key` and for the rest of the World it
+   * will be ctrl + `key`.
+   *
+   * @param {String} key The key combination as a sufix after the command key
+   * @param {?String} platform Current platform name. `navigator.platform` is used by default.
+   * @return {String} Full command to display in command label.
+   */
+  _computeA11yCommand(key, platform) {
+    if (!platform) {
+      platform = navigator.platform;
+    }
+    const isMac = platform.indexOf('Mac') !== -1;
+    let cmd = '';
+    if (isMac) {
+      cmd += 'meta+';
+    } else {
+      cmd += 'ctrl+';
+    }
+    cmd += key;
+    return cmd;
+  }
+
+  /**
+   * Toggles opened project details.
+   * @param {ClickEvent} e
+   */
+  _toggleOpen(e) {
+    const path = e.composedPath();
+    let target;
+    for (let i = 0, len = path.length; i < len; i++) {
+      const node = path[i];
+      if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('project-item-wrapper')) {
+        target = node.querySelector('.requests-condition');
+        break;
+      }
+    }
+    if (!target) {
+      return;
+    }
+    target.if = !target.if;
+  }
+  /**
+   * Updates icon size CSS variable and notifies resize on the list when
+   * list type changes.
+   * @param {?String} type
+   */
+  _updateListStyles(type) {
+    let size;
+    switch (type) {
+      case 'comfortable': size = 48; break;
+      case 'compact': size = 36; break;
+      default: size = 56; break;
+    }
+    const value = `${size}px`;
+    if (!window.ShadyCSS) {
+      this.style.setProperty('--paper-item-icon-width', value);
+    } else {
+      this.updateStyles({
+        '--paper-item-icon-width': value
+      });
+    }
+  }
+
+  _cancelEvent(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+  /**
+   * Cancels click event when "more" button is clicked.
+   * @param {ClickEvent} e
+   */
+  _moreClickHandler(e) {
+    this._cancelEvent(e);
+  }
+  /**
+   * Closes paper-listbox holding menu items.
+   * @param {ClickEvent} e
+   */
+  _deselectMenuOption(e) {
+    const listbox = e.target.parentElement;
+    listbox.selected = -1;
+  }
+  /**
+   * Handler for the click event "open all" menu item.
+   * @param {ClickEvent} e
+   */
+  _openAllRequests(e) {
+    this._cancelEvent(e);
+    this._deselectMenuOption(e);
+    const item = e.model.get('item');
+    this._dispatchOpenRequests(item, false);
+  }
+  /**
+   * Handler for the click event "replace all" menu item.
+   * @param {ClickEvent} e
+   */
+  _replaceAllRequests(e) {
+    this._cancelEvent(e);
+    this._deselectMenuOption(e);
+    const item = e.model.get('item');
+    this._dispatchOpenRequests(item, true);
+  }
+  /**
+   * Dispatches `workspace-open-project-requests` event end returns it.
+   * @param {Object} project Project object
+   * @param {?Boolean} replace When true the requests are to be replaced in the workspace.
+   * @return {CustomEvent}
+   */
+  _dispatchOpenRequests(project, replace) {
+    return this._dispatch('workspace-open-project-requests', {
+      project,
+      replace
+    });
+  }
+  /**
+   * Handler for the click event "details" menu item.
+   * Dispatches "navigate" event
+   * @param {ClickEvent} e
+   */
+  _openProject(e) {
+    this._cancelEvent(e);
+    this._deselectMenuOption(e);
+    const id = e.model.get('item._id');
+    this._dispatch('navigate', {
+      base: 'project',
+      type: 'details',
+      id
+    });
+  }
+
+  _stopEvent(e) {
+    e.stopPropagation();
+  }
+  /**
+   * Handler for `dragover` event on this element.
+   * @param {DragEvent} e
+   */
+  _dragoverHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = this._computeDropEffect(e);
+    if (this.__dragOverIndex !== undefined) {
+      return;
+    }
+    this.__dragOverIndex = e.model.get('index');
+    this.__dragOverTimeout = setTimeout(() => this._openProjectDragOver(), this.dragOpenTimeout);
+    if (!e.currentTarget.classList.contains('drop-target')) {
+      e.currentTarget.classList.add('drop-target');
+    }
+  }
+  /**
+   * Computes value for `dropEffect` property of the `DragEvent`.
+   * @param {DragEvent} e
+   * @return {String} Either `copy` or `move`.
+   */
+  _computeDropEffect(e) {
+    let allowed = e.dataTransfer.effectAllowed;
+    if (!allowed) {
+      // this 2 operations are supported here
+      allowed = 'copyMove';
+    }
+    allowed = allowed.toLowerCase();
+    const isHistory = e.dataTransfer.types.indexOf('arc/history-request') !== -1;
+    if ((e.ctrlKey || e.metaKey) && !isHistory && allowed.indexOf('move') !== -1) {
+      return 'move';
+    } else {
+      return 'copy';
+    }
+  }
+  /**
+   * Handler for `dragleave` event on project node.
+   * @param {DragEvent} e
+   */
+  _dragleaveHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.preventDefault();
+    this.__dragOverIndex = undefined;
+    this._cancelDragTimeout();
+    if (e.currentTarget.classList.contains('drop-target')) {
+      e.currentTarget.classList.remove('drop-target');
+    }
+  }
+  /**
+   * Handler for `drag` event on this element. If the dagged item is compatible
+   * it adds request to the project
+   * @param {DragEvent} e
+   */
+  _dropHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.preventDefault();
+    this._cancelDragTimeout();
+    if (e.currentTarget.classList.contains('drop-target')) {
+      e.currentTarget.classList.remove('drop-target');
+    }
+    const data = e.dataTransfer.getData('arc/request-object');
+    if (!data) {
+      return;
+    }
+    const request = JSON.parse(data);
+    const project = e.model.get('item');
+    this._appendRequest(project, request);
+  }
+  /**
+   * Cancels the timer set in the dragover event
+   */
+  _cancelDragTimeout() {
+    if (this.__dragOverTimeout) {
+      clearTimeout(this.__dragOverTimeout);
+      this.__dragOverTimeout = undefined;
+    }
+  }
+  /**
+   * Opens the project from the draggable event.
+   */
+  _openProjectDragOver() {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    this.__dragOverTimeout = undefined;
+    const index = this.__dragOverIndex;
+    this.__dragOverIndex = undefined;
+    const cond = this.shadowRoot.querySelectorAll('.requests-condition')[index];
+    cond.if = true;
+  }
+  /**
+   * Adds dropped request to a project.
+   * @param {Object} project Project model
+   * @param {Object} request Request model
+   * @return {Promise}
+   */
+  _appendRequest(project, request) {
+    if (request.type === 'history') {
+      request.type = 'saved';
+      const UuidGenerator = window.customElements.get('uuid-generator');
+      const g = new UuidGenerator();
+      request._id = g.generate();
+      delete request._rev;
+    }
+    if (!request.name) {
+      request.name = 'Unnamed';
+    }
+    const id = request._id;
+    if (!project.requests) {
+      project.requests = [id];
+    } else {
+      const currentIndex = project.requests.indexOf(id);
+      if (currentIndex !== -1) {
+        project.requests.splice(currentIndex, 1);
+      }
+      project.requests.splice(0, 0, id);
+    }
+    if (!request.projects) {
+      request.projects = [];
+    }
+    let requestChanged = false;
+    if (request.projects.indexOf(project._id) === -1) {
+      request.projects.push(project._id);
+      requestChanged = true;
+    }
+    const e = this._dispatchProjectChanged(project);
+    return e.detail.result
+    .then(() => {
+      if (requestChanged) {
+        const e = this._dispatch('save-request', {
+          request
+        });
+        return e.detail.result;
+      }
+    })
+    .catch((cause) => this._dispatchProcessError(cause));
+  }
+  /**
+   * Dispatches `project-object-changed` custom event and returns it.
+   * @param {Object} project Updated project to store.
+   * @return {CustomEvent} Disaptched custom event
+   */
+  _dispatchProjectChanged(project) {
+    return this._dispatch('project-object-changed', {
+      project
+    });
+  }
+  /**
+   * Dispatches `process-error` so the application can notify user about the event.
+   * @param {Error} cause Error object
+   * @return {CustomEvent} Disaptched custom event
+   */
+  _dispatchProcessError(cause) {
+    console.warn(cause);
+    const message = cause.message || 'Unknown error';
+    return this._dispatch('process-error', {
+      message
+    });
+  }
+  /**
+   * Dispatches bubbling and composed custom event.
+   * By default the event is cancelable until `cancelable` property is set to false.
+   * @param {String} type Event type
+   * @param {?any} detail A detail to set
+   * @param {?Boolean} cancelable True if the event is cancelable (default value).
+   * @return {CustomEvent}
+   */
+  _dispatch(type, detail, cancelable) {
+    if (typeof cancelable !== 'boolean') {
+      cancelable = true;
+    }
+    const e = new CustomEvent(type, {
+      bubbles: true,
+      composed: true,
+      cancelable,
+      detail
+    });
+    this.dispatchEvent(e);
+    return e;
+  }
+  /**
+   * Handler for the `dragstart` event added to the list item when `draggableEnabled`
+   * is set to true.
+   * This function sets request data on the `dataTransfer` object with `arc/request-object`
+   * mime type. The request data is a serialized JSON with request model.
+   * @param {Event} e
+   */
+  _dragStart(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    this.disableRippling();
+    e.stopPropagation();
+    const project = e.model.get('item');
+    const data = JSON.stringify(project);
+    e.dataTransfer.setData('arc/project-object', data);
+    e.dataTransfer.setData('arc-source/project-menu', project._id);
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+  }
+  /**
+   * Computes value for the `draggable` property of the list item.
+   * When `draggableEnabled` is set it returns true which is one of the
+   * conditions to enable drag and drop on an element.
+   * @param {Boolean} draggableEnabled Current value of `draggableEnabled`
+   * @return {String} `true` or `false` (as string) depending on the argument.
+   */
+  _computeDraggableValue(draggableEnabled) {
+    return draggableEnabled ? 'true' : 'false';
+  }
+  /**
+   * Handles `dragend` event dispatched when the drag operation is over.
+   * Restores ripple effects.
+   */
+  _dragEnd() {
+    this.noink = false;
+  }
+  /**
+   * Sets `noink` property that is propagated to each `paper-ripple` element
+   * and terminates any running animation.
+   * This function is used by `dragstart` event handler to remove ripples
+   * which causes the dragged image to be bigger than it really is.
+   */
+  disableRippling() {
+    this.noink = true;
+    const node = this.shadowRoot.querySelector('paper-ripple[animating]');
+    if (!node || !node.ripples || !node.ripples.length) {
+      return;
+    }
+    node.ripples.forEach((ripple) => node.removeRipple(ripple));
+  }
+}
+window.customElements.define(ProjectsMenu.is, ProjectsMenu);

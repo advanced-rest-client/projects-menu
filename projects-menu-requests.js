@@ -1,0 +1,538 @@
+/**
+@license
+Copyright 2018 The Advanced REST client authors <arc@mulesoft.com>
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+*/
+import {PolymerElement} from '../../@polymer/polymer/polymer-element.js';
+import '../../@api-components/http-method-label/http-method-label.js';
+import '../../@polymer/paper-toast/paper-toast.js';
+import '../../@polymer/paper-progress/paper-progress.js';
+import '../../@polymer/paper-item/paper-icon-item.js';
+import '../../@polymer/paper-item/paper-item-body.js';
+import '../../@polymer/paper-ripple/paper-ripple.js';
+import {RequestsListMixin} from '../../@advanced-rest-client/requests-list-mixin/requests-list-mixin.js';
+import '../../@advanced-rest-client/requests-list-mixin/requests-list-styles.js';
+import '../../@advanced-rest-client/uuid-generator/uuid-generator.js';
+import {html} from '../../@polymer/polymer/lib/utils/html-tag.js';
+/**
+ * A list of requests related to a project in the ARC main menu.
+ *
+ * The element requires the `arc-models/project-model` element to be present
+ * in the DOM to update requests order.
+ *
+ * ### Example
+ *
+ * ```
+ * <projects-menu-requests
+ *  project-id="some-id"
+ *  selected-request="id-of-selected"></projects-menu-requests>
+ * ```
+ *
+ * ### Styling
+ * `<saved-menu>` provides the following custom properties and mixins for styling:
+ *
+ * Custom property | Description | Default
+ * ----------------|-------------|----------
+ * `--projects-menu-requests-background-color` | Background color of the menu | `#f7f7f7`
+ * `--projects-menu-requests-selected-method-label-background-color` | Background color of the POST method label when the item is focused | `#fff`
+ * `--projects-menu-requests-selected-item-background-color` | Background color of the selected list item | `#FF9800`
+ * `--projects-menu-requests-selected-item-color` | Color of the selected list item | `#fff`
+ * `--warning-primary-color` | Main color of the warning messages | `#FF7043`
+ * `--warning-contrast-color` | Contrast color for the warning color | `#fff`
+ *
+ * @polymer
+ * @customElement
+ * @memberof UiElements
+ * @demo demo/index.html
+ * @appliesMixin RequestsListMixin
+ */
+class ProjectsMenuRequests extends RequestsListMixin(PolymerElement) {
+  static get template() {
+    return html`<style include="requests-list-styles">
+    :host {
+      display: block;
+      background-color: var(--projects-menu-requests-background-color, inherit);
+      position: relative;
+
+      font-size: var(--arc-font-body1-font-size);
+      font-weight: var(--arc-font-body1-font-weight);
+      line-height: var(--arc-font-body1-line-height);
+      flex: 1;
+      flex-basis: 0.000000001px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    paper-icon-item.dragging {
+      z-index: 1;
+      background-color: var(--projects-menu-requests-item-dragging-background-color, #fff);
+    }
+
+    .name {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    paper-progress {
+      width: calc(100% - 32px);
+      margin: 0 16px;
+      position: absolute;
+    }
+
+    .empty-message {
+      text-align: center;
+    }
+
+    .empty-info {
+      font-style: italic;
+      margin: 1em 16px;
+    }
+
+    .drop-pointer {
+      position: absolute;
+      left: 4px;
+      color: #757575;
+      width: 20px;
+      height: 24px;
+      font-size: 20px;
+    }
+
+    .drop-pointer::before {
+      content: "⇨";
+    }
+
+    paper-icon-item {
+      position: relative;
+    }
+    </style>
+    <template is="dom-if" if="[[querying]]">
+      <paper-progress indeterminate=""></paper-progress>
+    </template>
+    <template is="dom-if" if="[[dataUnavailable]]">
+      <div class="empty-message">
+        <p class="empty-info">This project has no data.</p>
+      </div>
+    </template>
+    <template is="dom-repeat" items="[[requests]]" id="repeater">
+      <paper-icon-item on-click="_openHandler"
+        title\$="[[item.url]]"
+        class="request-list-item"
+        draggable\$="[[_computeDraggableValue(draggableEnabled)]]"
+        on-dragstart="_dragStart" on-dragend="_dragEnd">
+        <http-method-label method="[[item.method]]" slot="item-icon"></http-method-label>
+        <paper-item-body two-line\$="[[_hasTwoLines]]">
+          <div class="name">[[item.name]]</div>
+          <div secondary="">[[item.url]]</div>
+        </paper-item-body>
+        <paper-ripple noink="[[noink]]"></paper-ripple>
+      </paper-icon-item>
+    </template>
+    <paper-toast id="reorderError" class="error-toast"
+      text="Unable to reorder requests. Please, report an issue."></paper-toast>`;
+  }
+
+  static get properties() {
+    return {
+      // True if the element currently is querying the datastore for the data
+      querying: {type: Boolean, notify: true},
+      /**
+       * Computed value. True if query ended and there's no results.
+       */
+      dataUnavailable: {
+        type: Boolean,
+        computed: '_computeDataUnavailable(hasRequests, querying)',
+        notify: true
+      },
+      _isAttached: Boolean,
+      /**
+       * Enables the comonent to accept drop action with a request.
+       */
+      draggableEnabled: {type: Boolean, value: false, observer: '_draggableChanged'},
+      noink: Boolean
+    };
+  }
+
+  constructor() {
+    super();
+    this._dragoverHandler = this._dragoverHandler.bind(this);
+    this._dragleaveHandler = this._dragleaveHandler.bind(this);
+    this._dropHandler = this._dropHandler.bind(this);
+  }
+
+  static get observers() {
+    return [
+      '_queryData(projectId, _isAttached)'
+    ];
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.type = 'project';
+    this._isAttached = true;
+    if (this.draggableEnabled) {
+      this._addDndEvents();
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._isAttached = false;
+    this._removeDndEvents();
+  }
+
+  _draggableChanged(value) {
+    if (value) {
+      this._addDndEvents();
+    } else {
+      this._removeDndEvents();
+    }
+  }
+
+  _addDndEvents() {
+    if (this.__dndAdded) {
+      return;
+    }
+    this.__dndAdded = true;
+    this.addEventListener('dragover', this._dragoverHandler);
+    this.addEventListener('dragleave', this._dragleaveHandler);
+    this.addEventListener('drop', this._dropHandler);
+  }
+
+  _removeDndEvents() {
+    if (!this.__dndAdded) {
+      return;
+    }
+    this.__dndAdded = false;
+    this.removeEventListener('dragover', this._dragoverHandler);
+    this.removeEventListener('dragleave', this._dragleaveHandler);
+    this.removeEventListener('drop', this._dropHandler);
+  }
+
+  /**
+   * Queries for the data when state or `projectId` changes
+   * @param {String} projectId
+   * @param {Boolean} isAttached Current valiue of `_isAttached`
+   */
+  _queryData(projectId, isAttached) {
+    if (!isAttached) {
+      return;
+    }
+    if (!projectId) {
+      this.set('requests', undefined);
+      return;
+    }
+    this.querying = true;
+    this.readProjectRequests(projectId)
+    .then((requests) => {
+      this.querying = false;
+      this.set('requests', requests);
+    })
+    .catch((cause) => {
+      this.querying = false;
+      console.error(cause);
+    });
+  }
+  /**
+   * Computes value for the `dataUnavailable` property.
+   * @param {Boolean} hasRequests
+   * @param {Boolean} querying
+   * @return {Boolean}
+   */
+  _computeDataUnavailable(hasRequests, querying) {
+    return !hasRequests && !querying;
+  }
+
+  /**
+   * Called when the user clicks on an item in the UI
+   * @param {ClickEvent} e
+   */
+  _openHandler(e) {
+    const id = e.model.get('item._id');
+    this._openRequest(id);
+  }
+  /**
+   * Removes drop pointer from shadow root.
+   */
+  _removeDropPointer() {
+    if (!this.__dropPointer) {
+      return;
+    }
+    this.shadowRoot.removeChild(this.__dropPointer);
+    this.__dropPointer = undefined;
+  }
+  /**
+   * Removes drop pointer to shadow root.
+   * @param {Element} ref A list item to be used as a reference point.
+   */
+  _createDropPointer(ref) {
+    let below = false;
+    if (ref.nodeName === 'DOM-REPEAT') {
+      // was last element
+      below = true;
+      ref = ref.previousElementSibling;
+    }
+    const rect = ref.getClientRects()[0];
+    const div = document.createElement('div');
+    div.className = 'drop-pointer';
+    const ownRect = this.getClientRects()[0];
+    let topPosition = rect.y - ownRect.y;
+    if (below) {
+      topPosition += rect.height;
+    }
+    topPosition -= 10; // padding
+    div.style.top = topPosition + 'px';
+    this.__dropPointer = div;
+    this.shadowRoot.appendChild(div);
+  }
+  /**
+   * Handler for `dragover` event on this element. If the dagged item is compatible
+   * it renders drop message.
+   * @param {DragEvent} e
+   */
+  _dragoverHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.dataTransfer.dropEffect = this._computeDropEffect(e);
+    e.preventDefault();
+    const path = e.path || e.composedPath();
+    const item = path.find((node) => node.nodeName === 'PAPER-ICON-ITEM');
+    if (!item) {
+      return;
+    }
+    const rect = item.getClientRects()[0];
+    const aboveHalf = (rect.y + rect.height/2) > e.y;
+    const ref = aboveHalf ? item : item.nextElementSibling;
+    if (!ref || this.__dropPointerReference === ref) {
+      return;
+    }
+    this._removeDropPointer();
+    this.__dropPointerReference = ref;
+    this._createDropPointer(ref);
+  }
+  /**
+   * Computes value fro `dropEffect` property of the `DragEvent`.
+   * @param {DragEvent} e
+   * @return {String} Either `copy` or `move`.
+   */
+  _computeDropEffect(e) {
+    let allowed = e.dataTransfer.effectAllowed;
+    if (!allowed) {
+      // this 2 operations are supported here
+      allowed = 'copyMove';
+    }
+    allowed = allowed.toLowerCase();
+    const isHistory = e.dataTransfer.types.indexOf('arc/history-request') !== -1;
+    // const isSaved = e.dataTransfer.types.indexOf('arc/saved-request') !== -1;
+    if ((e.ctrlKey || e.metaKey) && !isHistory && allowed.indexOf('move') !== -1) {
+      return 'move';
+    } else {
+      return 'copy';
+    }
+  }
+  /**
+   * Handler for `dragleave` event on this element.
+   * @param {DragEvent} e
+   */
+  _dragleaveHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.preventDefault();
+    this._removeDropPointer();
+    this.__dropPointerReference = undefined;
+  }
+  /**
+   * Handler for `drag` event on this element. If the dagged item is compatible
+   * it adds request to saved requests.
+   * @param {DragEvent} e
+   */
+  _dropHandler(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    if (e.dataTransfer.types.indexOf('arc/request-object') === -1) {
+      return;
+    }
+    e.preventDefault();
+    this._removeDropPointer();
+    const dropRef = this.__dropPointerReference;
+    this.__dropPointerReference = undefined;
+    const data = e.dataTransfer.getData('arc/request-object');
+    if (!data) {
+      return;
+    }
+    const request = JSON.parse(data);
+    if (!request.projects) {
+      request.projects = [];
+    }
+    let order;
+    if (dropRef) {
+      if (dropRef.nodeName === 'DOM-REPEAT') {
+        order = this.requests.length;
+      } else {
+        const model = this.$.repeater.modelForElement(dropRef);
+        order = model.get('index');
+      }
+    } else {
+      order = 0;
+    }
+    let forceRequestUpdate;
+    const effect = this._computeDropEffect(e);
+    if (effect === 'move') {
+      forceRequestUpdate = this._handleMoveDrop(e, request);
+    }
+    this._insertRequestAt(order, request, forceRequestUpdate);
+  }
+  /**
+   * Handles logic when drop event is `move` in effect.
+   * Removes reference to old project (if exists). It uses `arc-source/project-detail`
+   * data from event which should hold project ID.
+   * @param {DragEvent} e
+   * @param {Object} request Request object
+   * @return {Boolean} True if the request object changed.
+   */
+  _handleMoveDrop(e, request) {
+    let projectId;
+    if (e.dataTransfer.types.indexOf('arc-source/project-menu') !== -1) {
+      projectId = e.dataTransfer.getData('arc-source/project-menu');
+    } else if (e.dataTransfer.types.indexOf('arc-source/project-detail') !== -1) {
+      projectId = e.dataTransfer.getData('arc-source/project-detail');
+    }
+    if (!projectId) {
+      return false;
+    }
+    const index = request.projects.indexOf(projectId);
+    if (index !== -1) {
+      request.projects.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Updates project and request objects and inserts the request at a position.
+   * @param {Number} index The position in requests order
+   * @param {Object} request Request to update
+   * @param {Boolean} forceRequestUpdate Forces update on request object even
+   * when position hasn't change.
+   * @return {Promise}
+   */
+  _insertRequestAt(index, request, forceRequestUpdate) {
+    if (request.type === 'history') {
+      delete request._rev;
+      const gen = document.createElement('uuid-generator');
+      request._id = gen.generate();
+    }
+    if (!request.name) {
+      request.name = 'Unnamed';
+    }
+    const project = this.project;
+    const id = request._id;
+    if (!project.requests) {
+      project.requests = [id];
+    } else {
+      const currentIndex = project.requests.indexOf(id);
+      if (currentIndex !== -1) {
+        project.requests.splice(currentIndex, 1);
+      }
+      project.requests.splice(index, 0, id);
+    }
+    if (!request.projects) {
+      request.projects = [];
+    }
+    let requestChanged = false;
+    if (request.projects.indexOf(project._id) === -1) {
+      request.projects.push(project._id);
+      requestChanged = true;
+    }
+    const e = this._dispatchProjectChanged(project);
+    return e.detail.result
+    .then(() => {
+      if (requestChanged || forceRequestUpdate) {
+        const e = this._dispatch('save-request', {
+          request
+        });
+        return e.detail.result;
+      }
+    })
+    .catch((cause) => {
+      console.warn(cause);
+    });
+  }
+
+  _dispatchProjectChanged(project) {
+    return this._dispatch('project-object-changed', {
+      project
+    });
+  }
+
+  /**
+   * Handler for the `dragstart` event added to the list item when `draggableEnabled`
+   * is set to true.
+   * This function sets request data on the `dataTransfer` object with `arc/request-object`
+   * mime type. The request data is a serialized JSON with request model.
+   * @param {Event} e
+   */
+  _dragStart(e) {
+    if (!this.draggableEnabled) {
+      return;
+    }
+    this.disableRippling();
+    e.stopPropagation();
+    const request = e.model.get('item');
+    const data = JSON.stringify(request);
+    e.dataTransfer.setData('arc/request-object', data);
+    e.dataTransfer.setData('arc/saved-request', request._id);
+    e.dataTransfer.setData('arc-source/project-menu', this.projectId);
+    e.dataTransfer.effectAllowed = 'copyMove';
+    e.dataTransfer.setDragImage(e.currentTarget, 0, 0);
+  }
+  /**
+   * Handles `dragend` event dispatched when the drag operation is over.
+   * Restores ripple effects.
+   */
+  _dragEnd() {
+    this.noink = false;
+  }
+  /**
+   * Sets `noink` property that is propagated to each `paper-ripple` element
+   * and terminates any running animation.
+   * This function is used by `dragstart` event handler to remove ripples
+   * which causes the dragged image to be bigger than it really is.
+   */
+  disableRippling() {
+    this.noink = true;
+    const node = this.shadowRoot.querySelector('paper-ripple[animating]');
+    if (!node || !node.ripples || !node.ripples.length) {
+      return;
+    }
+    node.ripples.forEach((ripple) => node.removeRipple(ripple));
+  }
+  /**
+   * Computes value for the `draggable` property of the list item.
+   * When `draggableEnabled` is set it returns true which is one of the
+   * conditions to enable drag and drop on an element.
+   * @param {Boolean} draggableEnabled Current value of `draggableEnabled`
+   * @return {String} `true` or `false` (as string) depending on the argument.
+   */
+  _computeDraggableValue(draggableEnabled) {
+    return draggableEnabled ? 'true' : 'false';
+  }
+}
+window.customElements.define('projects-menu-requests', ProjectsMenuRequests);
