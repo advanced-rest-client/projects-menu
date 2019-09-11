@@ -4,12 +4,6 @@
 
 # projects-menu
 
-A list of saved request items in the ARC main menu
+## Deprecation notice
 
-```html
-<projects-menu></projects-menu>
-```
-
-### API components
-
-This components is a part of API components ecosystem: https://elements.advancedrestclient.com/
+This project is no longer maintained. Use `@advanced-rest-client/arc-menu` instead.
